@@ -96,13 +96,9 @@ func writeTLVs(tlvs []TLV, b []byte) (int, error) {
 func readTLVs(tlvs []TLV, maxLength int, b []byte) ([]TLV, error) {
 	pos := 0
 	var tlvType TLVType
-	for {
-		// packet can have trailing bytes, let's make sure we don't try to read past given length
-		if pos+tlvHeadSize > maxLength {
-			break
-		}
+	// packet can have trailing bytes, let's make sure we don't try to read past given length
+	for pos+tlvHeadSize <= maxLength {
 		tlvType = TLVType(binary.BigEndian.Uint16(b[pos:]))
-
 		switch tlvType {
 		case TLVAcknowledgeCancelUnicastTransmission:
 			tlv := &AcknowledgeCancelUnicastTransmissionTLV{}
@@ -315,7 +311,7 @@ func (t *PathTraceTLV) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	t.PathSequence = []ClockIdentity{}
-	for i := 0; i*8 <= int(t.TLVHead.LengthField); i++ {
+	for i := 0; i*8 <= int(t.LengthField); i++ {
 		pos := tlvHeadSize + i*8
 		if pos+8 >= len(b) {
 			break
@@ -340,9 +336,9 @@ type AlternateTimeOffsetIndicatorTLV struct {
 func (t *AlternateTimeOffsetIndicatorTLV) MarshalBinaryTo(b []byte) (int, error) {
 	tlvHeadMarshalBinaryTo(&t.TLVHead, b)
 	b[tlvHeadSize] = t.KeyField
-	binary.BigEndian.PutUint32(b[tlvHeadSize+1:], uint32(t.CurrentOffset))
-	binary.BigEndian.PutUint32(b[tlvHeadSize+5:], uint32(t.JumpSeconds))
-	copy(b[tlvHeadSize+9:], t.TimeOfNextJump[:]) //uint48
+	binary.BigEndian.PutUint32(b[tlvHeadSize+1:], uint32(t.CurrentOffset)) // #nosec:G115
+	binary.BigEndian.PutUint32(b[tlvHeadSize+5:], uint32(t.JumpSeconds))   // #nosec:G115
+	copy(b[tlvHeadSize+9:], t.TimeOfNextJump[:])                           //uint48
 	size := tlvHeadSize + 15
 	if t.DisplayName != "" {
 		dd, err := t.DisplayName.MarshalBinary()
@@ -364,9 +360,10 @@ func (t *AlternateTimeOffsetIndicatorTLV) UnmarshalBinary(b []byte) error {
 		return err
 	}
 	t.KeyField = b[tlvHeadSize]
-	t.CurrentOffset = int32(binary.BigEndian.Uint32(b[tlvHeadSize+1:]))
-	t.JumpSeconds = int32(binary.BigEndian.Uint32(b[tlvHeadSize+5:]))
-	copy(t.TimeOfNextJump[:], b[tlvHeadSize+9:]) // uint48
+	t.CurrentOffset = int32(binary.BigEndian.Uint32(b[tlvHeadSize+1:])) // #nosec:G115
+	t.JumpSeconds = int32(binary.BigEndian.Uint32(b[tlvHeadSize+5:]))   // #nosec:G115
+	copy(t.TimeOfNextJump[:], b[tlvHeadSize+9:])                        // #nosec:G602 uint48
+	// #nosec:G602
 	if err := t.DisplayName.UnmarshalBinary(b[tlvHeadSize+15:]); err != nil {
 		return fmt.Errorf("reading AlternateTimeOffsetIndicatorTLV DisplayName: %w", err)
 	}

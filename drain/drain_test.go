@@ -21,6 +21,15 @@ import (
 	"testing"
 )
 
+// checkRemove is a test helper that removes the given file and fails the
+// test if the remove operation returns an error.
+func checkRemove(t *testing.T, name string) {
+	t.Helper()
+	if err := os.Remove(name); err != nil {
+		t.Errorf("failed to remove file %q: %v", name, err)
+	}
+}
+
 func TestCheck(t *testing.T) {
 	file, err := os.CreateTemp("", "")
 	if err != nil {
@@ -32,7 +41,7 @@ func TestCheck(t *testing.T) {
 		t.Fatal("expected check.Check() to return true, but it returned false")
 	}
 
-	os.Remove(file.Name())
+	checkRemove(t, file.Name())
 	if check.Check() {
 		t.Fatal("expected check.Check() to return false after removal, but it returned true")
 	}
@@ -48,7 +57,7 @@ func TestUndrain(t *testing.T) {
 		t.Fatal("expected Undrain() to return true, but it returned false")
 	}
 
-	os.Remove(file.Name())
+	checkRemove(t, file.Name())
 	if Undrain(file.Name()) {
 		t.Fatal("expected Undrain() to return false after removal, but it returned true")
 	}

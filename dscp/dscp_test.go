@@ -17,18 +17,31 @@ limitations under the License.
 package dscp
 
 import (
+	"io"
 	"net"
 	"testing"
 
 	"github.com/oittaa/ptp4u/timestamp"
 )
 
+// checkClose is a test helper that closes the given resource and fails the
+// test if the close operation returns an error.
+func checkClose(t *testing.T, closer io.Closer) {
+	// t.Helper() marks this function as a test helper.
+	// When t.Errorf is called, the line number reported will be from the
+	// calling function, not from inside checkClose.
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Errorf("failed to close resource: %v", err)
+	}
+}
+
 func TestEnableDSCP(t *testing.T) {
 	conn4, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
 	if err != nil {
 		t.Fatalf("failed to listen on udp4: %v", err)
 	}
-	defer conn4.Close()
+	defer checkClose(t, conn4)
 	// get connection file descriptor
 	fd4, err := timestamp.ConnFd(conn4)
 	if err != nil {
@@ -43,7 +56,7 @@ func TestEnableDSCP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to listen on udp6: %v", err)
 	}
-	defer conn6.Close()
+	defer checkClose(t, conn6)
 	// get connection file descriptor
 	fd6, err := timestamp.ConnFd(conn6)
 	if err != nil {

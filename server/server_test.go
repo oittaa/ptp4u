@@ -19,6 +19,7 @@ package server
 import (
 	"context"
 	"errors"
+	"io"
 	"net"
 	"os"
 	"reflect"
@@ -31,6 +32,27 @@ import (
 
 	"golang.org/x/sys/unix"
 )
+
+// checkClose is a test helper that closes the given resource and fails the
+// test if the close operation returns an error.
+func checkClose(t *testing.T, closer io.Closer) {
+	// t.Helper() marks this function as a test helper.
+	// When t.Errorf is called, the line number reported will be from the
+	// calling function, not from inside checkClose.
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Errorf("failed to close resource: %v", err)
+	}
+}
+
+// checkRemove is a test helper that removes the given file and fails the
+// test if the remove operation returns an error.
+func checkRemove(t *testing.T, name string) {
+	t.Helper()
+	if err := os.Remove(name); err != nil {
+		t.Errorf("failed to remove file %q: %v", name, err)
+	}
+}
 
 // Helper function to check if a file exists
 func fileExists(t *testing.T, filename string) {
@@ -230,7 +252,7 @@ func TestHandleSighup(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(cfg.Name())
+	defer checkRemove(t, cfg.Name())
 
 	config := `clockaccuracy: 0 
 clockclass: 1
@@ -244,7 +266,7 @@ utcoffset: "37s"
 	if err != nil {
 		t.Fatalf("failed to write to temp config file: %v", err)
 	}
-	cfg.Close()
+	checkClose(t, cfg)
 
 	c.ConfigFile = cfg.Name()
 
@@ -278,8 +300,8 @@ func TestHandleSigterm(t *testing.T) {
 		t.Fatalf("failed to create temp pid file: %v", err)
 	}
 	pidFileName := cfg.Name()
-	cfg.Close()
-	os.Remove(pidFileName) // Ensure it doesn't exist before we start
+	checkClose(t, cfg)
+	_ = os.Remove(pidFileName) // Ensure it doesn't exist before we start
 	noFileExists(t, pidFileName)
 
 	c := &Config{StaticConfig: StaticConfig{PidFile: pidFileName}}

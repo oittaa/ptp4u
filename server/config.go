@@ -98,7 +98,7 @@ func (dc *DynamicConfig) UTCOffsetSanity() error {
 // ReadDynamicConfig reads dynamic config from the file
 func ReadDynamicConfig(path string) (*DynamicConfig, error) {
 	dc := &DynamicConfig{}
-	cData, err := os.ReadFile(path)
+	cData, err := os.ReadFile(path) // #nosec:G304
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func (dc *DynamicConfig) Write(path string) error {
 		return err
 	}
 
-	return os.WriteFile(path, d, 0644)
+	return os.WriteFile(path, d, 0644) // #nosec:G306
 }
 
 // IfaceHasIP checks if selected IP is on interface
@@ -143,7 +143,7 @@ func (c *Config) IfaceHasIP() (bool, error) {
 
 // CreatePidFile creates a pid file in a defined location
 func (c *Config) CreatePidFile() error {
-	return os.WriteFile(c.PidFile, []byte(fmt.Sprintf("%d\n", unix.Getpid())), 0644)
+	return os.WriteFile(c.PidFile, []byte(fmt.Sprintf("%d\n", unix.Getpid())), 0644) // #nosec:G306
 }
 
 // DeletePidFile deletes a pid file from a defined location
@@ -153,12 +153,12 @@ func (c *Config) DeletePidFile() error {
 
 // ReadPidFile read a pid file from a path location and returns a pid
 func ReadPidFile(path string) (int, error) {
-	content, err := os.ReadFile(path)
+	content, err := os.ReadFile(path) // #nosec:G304
 	if err != nil {
 		return 0, err
 	}
 
-	return strconv.Atoi(strings.Replace(string(content), "\n", "", -1))
+	return strconv.Atoi(strings.ReplaceAll(string(content), "\n", ""))
 }
 
 // ifaceIPs gets all IPs on the specified interface

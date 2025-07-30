@@ -142,8 +142,16 @@ func (s *sendWorker) Start() {
 		slog.Error("failed to start sendWorker", "error", err)
 		os.Exit(1)
 	}
-	defer unix.Close(eFd)
-	defer unix.Close(gFd)
+	defer func() {
+		if err := unix.Close(eFd); err != nil {
+			slog.Error("failed to close file descriptor", "fd", eFd, "error", err)
+		}
+	}()
+	defer func() {
+		if err := unix.Close(gFd); err != nil {
+			slog.Error("failed to close file descriptor", "fd", gFd, "error", err)
+		}
+	}()
 
 	// reusable buffers
 	buf := make([]byte, timestamp.PayloadSizeBytes)
@@ -193,7 +201,7 @@ func (s *sendWorker) Start() {
 						txTS = txTS.Add(s.config.UTCOffset)
 					}
 				} else {
-					seqID := uint32(c.Sync().Header.SequenceID)
+					seqID := uint32(c.Sync().SequenceID)
 					slog.Debug("Sending sync (SCM_TS_OPT_ID set)")
 					timestamp.SeqIDSocketControlMessage(seqID, soob)
 					err = unix.Sendmsg(eFd, buf[:n], soob, c.eclisa, 0)
@@ -290,7 +298,7 @@ func (s *sendWorker) Start() {
 						txTS = txTS.Add(s.config.UTCOffset)
 					}
 				} else {
-					seqID := uint32(c.Sync().Header.SequenceID)
+					seqID := uint32(c.Sync().SequenceID)
 					slog.Debug("Sending sync (SCM_TS_OPT_ID set)")
 					timestamp.SeqIDSocketControlMessage(seqID, soob)
 					err = unix.Sendmsg(eFd, buf[:n], soob, c.eclisa, 0)

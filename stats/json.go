@@ -23,6 +23,7 @@ import (
 	"net/http"
 	"os"
 	"sync/atomic"
+	"time"
 
 	ptp "github.com/oittaa/ptp4u/protocol"
 )
@@ -49,8 +50,15 @@ func (s *JSONStats) Start(monitoringport int) {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", s.handleRequest)
 	addr := fmt.Sprintf(":%d", monitoringport)
+	server := &http.Server{
+		Addr:         addr,
+		Handler:      mux,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+		IdleTimeout:  15 * time.Second,
+	}
 	slog.Info("Starting http json server", "addr", addr)
-	err := http.ListenAndServe(addr, mux)
+	err := server.ListenAndServe()
 	if err != nil {
 		slog.Error("Failed to start listener", "error", err)
 		os.Exit(1)

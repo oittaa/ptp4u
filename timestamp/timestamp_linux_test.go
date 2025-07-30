@@ -35,7 +35,7 @@ var IsBigEndian bool
 
 func init() {
 	var i uint16 = 0x0100
-	ptr := unsafe.Pointer(&i)
+	ptr := unsafe.Pointer(&i) //#nosec:G103
 	if *(*byte)(ptr) == 0x01 {
 		// we are on the big endian machine
 		IsBigEndian = true
@@ -71,7 +71,7 @@ func Test_ReadTXtimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -199,7 +199,7 @@ func TestEnableSWTimestampsRx(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -224,7 +224,7 @@ func TestEnableSWTimestamps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -249,7 +249,7 @@ func TestEnableTimestamps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -333,7 +333,7 @@ func TestReadPacketWithRXTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -355,7 +355,7 @@ func TestReadPacketWithRXTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.DialTimeout failed: %v", err)
 	}
-	defer cconn.Close()
+	defer checkClose(t, cconn)
 	_, err = cconn.Write(request)
 	if err != nil {
 		t.Fatalf("cconn.Write failed: %v", err)
@@ -381,7 +381,7 @@ func TestReadPacketWithRXTXTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {
@@ -403,7 +403,7 @@ func TestReadPacketWithRXTXTimestamp(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.DialTimeout failed: %v", err)
 	}
-	defer cconn.Close()
+	defer checkClose(t, cconn)
 	_, err = cconn.Write(request)
 	if err != nil {
 		t.Fatalf("cconn.Write failed: %v", err)
@@ -443,7 +443,7 @@ func TestReadHWTimestampCaps(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connFd, err := ConnFd(conn)
 	if err != nil {

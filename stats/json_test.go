@@ -29,7 +29,20 @@ import (
 	ptp "github.com/oittaa/ptp4u/protocol"
 )
 
-func getFreePort() (int, error) {
+// checkClose is a test helper that closes the given resource and fails the
+// test if the close operation returns an error.
+func checkClose(t *testing.T, closer io.Closer) {
+	// t.Helper() marks this function as a test helper.
+	// When t.Errorf is called, the line number reported will be from the
+	// calling function, not from inside checkClose.
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Errorf("failed to close resource: %v", err)
+	}
+}
+
+func getFreePort(t *testing.T) (int, error) {
+	t.Helper()
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
 		return 0, err
@@ -39,7 +52,7 @@ func getFreePort() (int, error) {
 	if err != nil {
 		return 0, err
 	}
-	defer l.Close()
+	defer checkClose(t, l)
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
@@ -303,7 +316,7 @@ func TestJSONStatsSnapshot(t *testing.T) {
 
 func TestJSONExport(t *testing.T) {
 	stats := NewJSONStats()
-	port, err := getFreePort()
+	port, err := getFreePort(t)
 	if err != nil {
 		t.Fatalf("Failed to allocate port: %v", err)
 	}
@@ -331,7 +344,7 @@ func TestJSONExport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("http.Get failed: %v", err)
 	}
-	defer resp.Body.Close()
+	defer checkClose(t, resp.Body)
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {

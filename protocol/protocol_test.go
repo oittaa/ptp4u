@@ -166,7 +166,7 @@ func TestParseFollowup(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType: NewSdoIDAndMsgType(MessageFollowUp, 0),
 			Version:         MajorVersion,
-			MessageLength:   uint16(binary.Size(FollowUp{})),
+			MessageLength:   uint16(binary.Size(FollowUp{})), // #nosec:G115
 			DomainNumber:    0,
 			FlagField:       FlagUnicast,
 			SequenceID:      0,
@@ -291,7 +291,7 @@ func TestParseDelayResp(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType: NewSdoIDAndMsgType(MessageDelayResp, 0),
 			Version:         MajorVersion,
-			MessageLength:   uint16(binary.Size(DelayResp{})),
+			MessageLength:   uint16(binary.Size(DelayResp{})), // #nosec:G115
 			DomainNumber:    0,
 			FlagField:       FlagUnicast,
 			SequenceID:      10,
@@ -450,7 +450,7 @@ func BenchmarkWriteFollowup(b *testing.B) {
 		Header: Header{
 			SdoIDAndMsgType: NewSdoIDAndMsgType(MessageFollowUp, 0),
 			Version:         MajorVersion,
-			MessageLength:   uint16(binary.Size(FollowUp{})),
+			MessageLength:   uint16(binary.Size(FollowUp{})), // #nosec:G115
 			DomainNumber:    0,
 			FlagField:       FlagUnicast,
 			SequenceID:      0,

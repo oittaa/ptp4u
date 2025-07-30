@@ -19,6 +19,7 @@ package timestamp
 import (
 	"bytes"
 	"errors"
+	"io"
 	"net"
 	"net/netip"
 	"reflect"
@@ -26,6 +27,18 @@ import (
 
 	"golang.org/x/sys/unix"
 )
+
+// checkClose is a test helper that closes the given resource and fails the
+// test if the close operation returns an error.
+func checkClose(t *testing.T, closer io.Closer) {
+	// t.Helper() marks this function as a test helper.
+	// When t.Errorf is called, the line number reported will be from the
+	// calling function, not from inside checkClose.
+	t.Helper()
+	if err := closer.Close(); err != nil {
+		t.Errorf("failed to close resource: %v", err)
+	}
+}
 
 func requireEqualNetAddrSockAddr(t *testing.T, n net.Addr, s unix.Sockaddr) {
 	t.Helper() // Mark as a test helper function.
@@ -62,13 +75,13 @@ func TestConnFd(t *testing.T) {
 	if err != nil {
 		t.Fatalf("net.ListenUDP failed: %v", err)
 	}
-	defer conn.Close()
+	defer checkClose(t, conn)
 
 	connfd, err := ConnFd(conn)
 	if err != nil {
 		t.Fatalf("ConnFd() failed: %v", err)
 	}
-	if !(connfd > 0) {
+	if connfd <= 0 {
 		t.Fatalf("connection fd must be > 0, but got %d", connfd)
 	}
 }

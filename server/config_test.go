@@ -116,7 +116,7 @@ func TestReadDynamicConfigOk(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(cfg.Name())
+	defer checkRemove(t, cfg.Name())
 
 	config := `clockaccuracy: 33
 clockclass: 6
@@ -130,7 +130,7 @@ utcoffset: "37s"
 	if err != nil {
 		t.Fatalf("failed to write to temp config file: %v", err)
 	}
-	cfg.Close() // Close the file to ensure content is flushed
+	checkClose(t, cfg) // Close the file to ensure content is flushed
 
 	dc, err = ReadDynamicConfig(cfg.Name())
 	if err != nil {
@@ -154,13 +154,13 @@ utcoffset: "7s"
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(cfg.Name())
+	defer checkRemove(t, cfg.Name())
 
 	_, err = cfg.WriteString(config)
 	if err != nil {
 		t.Fatalf("failed to write to temp config file: %v", err)
 	}
-	cfg.Close()
+	checkClose(t, cfg)
 
 	dc, err := ReadDynamicConfig(cfg.Name())
 	if !errors.Is(err, errInsaneUTCoffset) {
@@ -177,13 +177,13 @@ func TestReadDynamicConfigDamaged(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to create temp file: %v", err)
 	}
-	defer os.Remove(cfg.Name())
+	defer checkRemove(t, cfg.Name())
 
 	_, err = cfg.WriteString(config)
 	if err != nil {
 		t.Fatalf("failed to write to temp config file: %v", err)
 	}
-	cfg.Close()
+	checkClose(t, cfg)
 
 	dc, err := ReadDynamicConfig(cfg.Name())
 	if err == nil {
@@ -216,16 +216,16 @@ utcoffset: 37s
 	// Use a path in the temp directory that doesn't exist yet
 	cfgPath := fmt.Sprintf("%s/ptp4u-test-write.yaml", os.TempDir())
 	// Clean up just in case of a previous failed run
-	os.Remove(cfgPath)
+	_ = os.Remove(cfgPath)
 	noFileExists(t, cfgPath)
 
 	err := dc.Write(cfgPath)
-	defer os.Remove(cfgPath)
+	defer checkRemove(t, cfgPath)
 	if err != nil {
 		t.Fatalf("dc.Write() failed: %v", err)
 	}
 
-	rl, err := os.ReadFile(cfgPath)
+	rl, err := os.ReadFile(cfgPath) // #nosec:G304
 	if err != nil {
 		t.Fatalf("os.ReadFile() failed: %v", err)
 	}
@@ -259,11 +259,10 @@ func TestPidFile(t *testing.T) {
 		t.Fatalf("failed to create temp pid file: %v", err)
 	}
 	pidFileName := cfgFile.Name()
-	cfgFile.Close()
-	defer os.Remove(pidFileName)
+	checkClose(t, cfgFile)
 
 	c := &Config{StaticConfig: StaticConfig{PidFile: pidFileName}}
-
+	// #nosec:G306
 	if err := os.WriteFile(pidFileName, []byte("rubbish"), 0644); err != nil {
 		t.Fatalf("failed to write rubbish to pid file: %v", err)
 	}
@@ -274,7 +273,7 @@ func TestPidFile(t *testing.T) {
 	if pid != 0 {
 		t.Errorf("expected pid to be 0 on error, got %d", pid)
 	}
-	os.Remove(pidFileName)
+	checkRemove(t, pidFileName)
 	noFileExists(t, pidFileName)
 
 	err = c.CreatePidFile()

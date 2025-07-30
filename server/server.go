@@ -177,7 +177,11 @@ func (s *Server) startEventListener() {
 		slog.Error("Listening error", "error", err)
 		os.Exit(1)
 	}
-	defer eventConn.Close()
+	defer func() {
+		if err := eventConn.Close(); err != nil {
+			slog.Error("Failed to close event connection", "error", err)
+		}
+	}()
 
 	// get connection file descriptor
 	s.eFd, err = timestamp.ConnFd(eventConn)
@@ -217,7 +221,11 @@ func (s *Server) startGeneralListener() {
 		slog.Error("Listening error", "error", err)
 		os.Exit(1)
 	}
-	defer generalConn.Close()
+	defer func() {
+		if err := generalConn.Close(); err != nil {
+			slog.Error("Error closing connection", "error", err)
+		}
+	}()
 
 	// get connection file descriptor
 	s.gFd, err = timestamp.ConnFd(generalConn)
@@ -312,11 +320,11 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 				}
 			}
 
-			worker = s.findWorker(dReq.Header.SourcePortIdentity, workerOffset)
+			worker = s.findWorker(dReq.SourcePortIdentity, workerOffset)
 			if dReq.FlagField == ptp.FlagProfileSpecific1|ptp.FlagUnicast {
 				expire = time.Now().Add(subscriptionDuration)
 				// SYNC DELAY_REQUEST and ANNOUNCE
-				if sc = worker.FindSubscription(dReq.Header.SourcePortIdentity, ptp.MessageDelayReq); sc == nil {
+				if sc = worker.FindSubscription(dReq.SourcePortIdentity, ptp.MessageDelayReq); sc == nil {
 					// if the port number is > 10, it's a ptping request which expects announce to come to the same ephemeral port
 					if dReq.SourcePortIdentity.PortNumber > 10 {
 						gclisa = eclisa
@@ -325,7 +333,7 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 					}
 					// Create a new subscription
 					sc = NewSubscriptionClient(worker.queue, worker.signalingQueue, eclisa, gclisa, ptp.MessageDelayReq, s.Config, subscriptionDuration, expire)
-					worker.RegisterSubscription(dReq.Header.SourcePortIdentity, ptp.MessageDelayReq, sc)
+					worker.RegisterSubscription(dReq.SourcePortIdentity, ptp.MessageDelayReq, sc)
 					go sc.Start(s.ctx)
 				} else {
 					// bump the subscription
@@ -343,7 +351,7 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 				sc.UpdateAnnounceDelayReq(dReq.CorrectionField, dReq.SequenceID)
 			} else {
 				// DELAY_RESPONSE
-				if sc = worker.FindSubscription(dReq.Header.SourcePortIdentity, ptp.MessageDelayResp); sc == nil {
+				if sc = worker.FindSubscription(dReq.SourcePortIdentity, ptp.MessageDelayResp); sc == nil {
 					slog.Info("IP of a delay request is not in the subscription list", "IP", timestamp.SockaddrToIP(eclisa))
 					continue
 				}
@@ -453,10 +461,10 @@ func (s *Server) handleGeneralMessages(generalConn *net.UDPConn) {
 }
 
 func (s *Server) findWorker(clientID ptp.PortIdentity, offset int64) *sendWorker {
-	val := int64(clientID.ClockIdentity) + int64(clientID.PortNumber) + offset //#nosec G115
-	hashableBytes := unsafe.Slice((*byte)(unsafe.Pointer(&val)), 8)
+	val := int64(clientID.ClockIdentity) + int64(clientID.PortNumber) + offset //#nosec:G115
+	hashableBytes := unsafe.Slice((*byte)(unsafe.Pointer(&val)), 8)            //#nosec:G103
 	hash := xxhash.Sum64(hashableBytes)
-	return s.sw[hash%uint64(s.Config.SendWorkers)] //#nosec G115
+	return s.sw[hash%uint64(s.Config.SendWorkers)] //#nosec:G115
 }
 
 // Drain traffic

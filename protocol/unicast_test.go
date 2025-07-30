@@ -45,7 +45,7 @@ func TestParseRequestUnicastTransmissionMultiTLV(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSignaling, 0),
 			Version:             2,
-			MessageLength:       uint16(len(raw) - 2),
+			MessageLength:       uint16(len(raw) - 2), // #nosec:G115
 			DomainNumber:        0,
 			MinorSdoID:          0,
 			FlagField:           FlagUnicast,
@@ -134,7 +134,7 @@ func TestParseRequestUnicastTransmissionExtraBytes(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSignaling, 0),
 			Version:             2,
-			MessageLength:       uint16(len(raw) - 2 - len(extraBytes)),
+			MessageLength:       uint16(len(raw) - 2 - len(extraBytes)), // #nosec:G115
 			DomainNumber:        0,
 			MinorSdoID:          0,
 			FlagField:           FlagUnicast,
@@ -212,7 +212,7 @@ func TestParseGrantUnicastTransmission(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSignaling, 0),
 			Version:             2,
-			MessageLength:       uint16(len(raw) - 2),
+			MessageLength:       uint16(len(raw) - 2), // #nosec:G115
 			DomainNumber:        0,
 			MinorSdoID:          0,
 			FlagField:           FlagUnicast | FlagTwoStep,
@@ -281,7 +281,7 @@ func TestParseCancelUnicastTransmission(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSignaling, 0),
 			Version:             2,
-			MessageLength:       uint16(len(raw) - 2),
+			MessageLength:       uint16(len(raw) - 2), // #nosec:G115
 			DomainNumber:        0,
 			MinorSdoID:          0,
 			FlagField:           FlagUnicast,
@@ -347,7 +347,7 @@ func TestParseAcknowledgeCancelUnicastTransmission(t *testing.T) {
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSignaling, 0),
 			Version:             2,
-			MessageLength:       uint16(len(raw) - 2),
+			MessageLength:       uint16(len(raw) - 2), // #nosec:G115
 			DomainNumber:        0,
 			MinorSdoID:          0,
 			FlagField:           FlagUnicast,

@@ -22,7 +22,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
-	_ "net/http/pprof"
+	"net/http/pprof"
 	"os"
 	"time"
 
@@ -123,9 +123,22 @@ func main() {
 	}
 
 	if c.DebugAddr != "" {
-		slog.Warn("Staring profiler.", "pprofaddr", c.DebugAddr)
+		slog.Warn("Starting profiler.", "pprofaddr", c.DebugAddr)
+		pprofMux := http.NewServeMux()
+		pprofMux.HandleFunc("/debug/pprof/", pprof.Index)
+		pprofMux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		pprofMux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		pprofMux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		pprofMux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+		pprofServer := &http.Server{
+			Addr:         c.DebugAddr,
+			Handler:      pprofMux,
+			ReadTimeout:  10 * time.Second,
+			WriteTimeout: 10 * time.Second,
+			IdleTimeout:  15 * time.Second,
+		}
 		go func() {
-			err := (http.ListenAndServe(c.DebugAddr, nil))
+			err := pprofServer.ListenAndServe()
 			if err != nil && err != http.ErrServerClosed {
 				slog.Error("pprof server failed to start or crashed.", "pprofaddr", c.DebugAddr, "error", err)
 				os.Exit(1)

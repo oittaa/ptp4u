@@ -77,7 +77,7 @@ func scmDataToTime(data []byte) (ts time.Time, err error) {
 
 // scmDataToSeqID parses SocketControlMessage Data field to get the SequenceID
 func scmDataToSeqID(data []byte) (seqID uint32, err error) {
-	se := (*unix.SockExtendedErr)(unsafe.Pointer(&data[0]))
+	se := (*unix.SockExtendedErr)(unsafe.Pointer(&data[0])) //#nosec:G103
 	if unix.Errno(se.Errno) != unix.ENOMSG {
 		return 0, fmt.Errorf("expected ENOMSG but got %w", unix.Errno(se.Errno))
 	}
@@ -88,8 +88,8 @@ func scmDataToSeqID(data []byte) (seqID uint32, err error) {
 func byteToTime(data []byte) (time.Time, error) {
 	// __kernel_timespec from linux/time_types.h
 	// can't use unix.Timespec which is old timespec that uses 32bit ints on 386 platform.
-	sec := *(*int64)(unsafe.Pointer(&data[0]))
-	nsec := *(*int64)(unsafe.Pointer(&data[8]))
+	sec := *(*int64)(unsafe.Pointer(&data[0]))  //#nosec:G103
+	nsec := *(*int64)(unsafe.Pointer(&data[8])) //#nosec:G103
 	return time.Unix(sec, nsec), nil
 }
 
@@ -210,7 +210,7 @@ func EnableHWTimestampsRx(connFd int, iface string) error {
 // SeqIDSocketControlMessage encodes the SequenceID into a socket control message
 // and specifies SCM_TS_OPT_ID as the Control Message Header type
 func SeqIDSocketControlMessage(seqID uint32, soob []byte) {
-	h := (*unix.Cmsghdr)(unsafe.Pointer(&soob[0]))
+	h := (*unix.Cmsghdr)(unsafe.Pointer(&soob[0])) //#nosec:G103
 	h.Level = unix.SOL_SOCKET
 	h.Type = unix.SCM_TS_OPT_ID
 	h.SetLen(unix.CmsgLen(SizeofSeqID))
@@ -220,7 +220,7 @@ func SeqIDSocketControlMessage(seqID uint32, soob []byte) {
 
 func waitForHWTS(connFd int) error {
 	// Wait until TX timestamp is ready
-	fds := []unix.PollFd{{Fd: int32(connFd), Events: unix.POLLERR, Revents: 0}}
+	fds := []unix.PollFd{{Fd: int32(connFd), Events: unix.POLLERR, Revents: 0}} //#nosec:G115
 	for {
 		n, err := unix.Poll(fds, int(TimeoutTXTS.Milliseconds()))
 		if !errors.Is(err, syscall.EINTR) {
@@ -240,11 +240,11 @@ func recvoob(connFd int, oob []byte) (oobn int, err error) {
 	var msg unix.Msghdr
 	msg.Control = &oob[0]
 	msg.SetControllen(len(oob))
-	_, _, e1 := unix.Syscall(unix.SYS_RECVMSG, uintptr(connFd), uintptr(unsafe.Pointer(&msg)), uintptr(unix.MSG_ERRQUEUE))
+	_, _, e1 := unix.Syscall(unix.SYS_RECVMSG, uintptr(connFd), uintptr(unsafe.Pointer(&msg)), uintptr(unix.MSG_ERRQUEUE)) //#nosec:G103
 	if e1 != 0 {
 		return 0, e1
 	}
-	return int(msg.Controllen), nil
+	return int(msg.Controllen), nil //#nosec:G115
 }
 
 // socketControlMessageTimestamp is a very optimised version of ParseSocketControlMessage
@@ -253,8 +253,8 @@ func recvoob(connFd int, oob []byte) (oobn int, err error) {
 func socketControlMessageTimestamp(b []byte, boob int) (time.Time, error) {
 	mlen := 0
 	for i := 0; i < boob; i += unix.CmsgSpace(mlen - unix.SizeofCmsghdr) {
-		h := (*unix.Cmsghdr)(unsafe.Pointer(&b[i]))
-		mlen = int(h.Len) //#nosec G115
+		h := (*unix.Cmsghdr)(unsafe.Pointer(&b[i])) //#nosec:G103
+		mlen = int(h.Len)                           //#nosec:G115
 		if mlen == 0 {
 			break
 		}
@@ -273,8 +273,8 @@ func socketControlMessageSeqIDTimestamp(b []byte, tboob int, seqID uint32) (time
 	cseq := uint32(0)
 	var err error
 	for i := 0; i < tboob; i += unix.CmsgSpace(mlen - unix.SizeofCmsghdr) {
-		h := (*unix.Cmsghdr)(unsafe.Pointer(&b[i]))
-		mlen = int(h.Len) //#nosec G115
+		h := (*unix.Cmsghdr)(unsafe.Pointer(&b[i])) //#nosec:G103
+		mlen = int(h.Len)                           //#nosec:G115
 		if mlen == 0 {
 			break
 		}

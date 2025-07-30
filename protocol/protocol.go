@@ -87,7 +87,7 @@ func unmarshalHeader(p *Header, b []byte) {
 	p.DomainNumber = b[4]
 	p.MinorSdoID = b[5]
 	p.FlagField = binary.BigEndian.Uint16(b[6:])
-	p.CorrectionField = Correction(binary.BigEndian.Uint64(b[8:]))
+	p.CorrectionField = Correction(binary.BigEndian.Uint64(b[8:])) // #nosec:G115
 	p.MessageTypeSpecific = binary.BigEndian.Uint32(b[16:])
 	p.SourcePortIdentity.ClockIdentity = ClockIdentity(binary.BigEndian.Uint64(b[20:]))
 	p.SourcePortIdentity.PortNumber = binary.BigEndian.Uint16(b[28:])
@@ -122,7 +122,7 @@ func headerMarshalBinaryTo(p *Header, b []byte) int {
 	b[4] = p.DomainNumber
 	b[5] = p.MinorSdoID
 	binary.BigEndian.PutUint16(b[6:], p.FlagField)
-	binary.BigEndian.PutUint64(b[8:], uint64(p.CorrectionField))
+	binary.BigEndian.PutUint64(b[8:], uint64(p.CorrectionField)) // #nosec:G115
 	binary.BigEndian.PutUint32(b[16:], p.MessageTypeSpecific)
 	binary.BigEndian.PutUint64(b[20:], uint64(p.SourcePortIdentity.ClockIdentity))
 	binary.BigEndian.PutUint16(b[28:], p.SourcePortIdentity.PortNumber)
@@ -183,7 +183,7 @@ func (p *Announce) MarshalBinaryTo(b []byte) (int, error) {
 	n := headerMarshalBinaryTo(&p.Header, b)
 	copy(b[n:], p.OriginTimestamp.Seconds[:]) //uint48
 	binary.BigEndian.PutUint32(b[n+6:], p.OriginTimestamp.Nanoseconds)
-	binary.BigEndian.PutUint16(b[n+10:], uint16(p.CurrentUTCOffset))
+	binary.BigEndian.PutUint16(b[n+10:], uint16(p.CurrentUTCOffset)) // #nosec:G115
 	b[n+12] = p.Reserved
 	b[n+13] = p.GrandmasterPriority1
 	b[n+14] = byte(p.GrandmasterClockQuality.ClockClass)
@@ -211,7 +211,7 @@ func (p *Announce) UnmarshalBinary(b []byte) error {
 	n := headerSize
 	copy(p.OriginTimestamp.Seconds[:], b[n:]) //uint48
 	p.OriginTimestamp.Nanoseconds = binary.BigEndian.Uint32(b[n+6:])
-	p.CurrentUTCOffset = int16(binary.BigEndian.Uint16(b[n+10:]))
+	p.CurrentUTCOffset = int16(binary.BigEndian.Uint16(b[n+10:])) // #nosec:G115
 	p.Reserved = b[n+12]
 	p.GrandmasterPriority1 = b[n+13]
 	p.GrandmasterClockQuality.ClockClass = ClockClass(b[n+14])

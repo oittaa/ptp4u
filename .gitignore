@@ -1,0 +1,9 @@
+.DS_Store
+*.log
+*.tmp
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+ptp4u

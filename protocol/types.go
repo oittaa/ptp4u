@@ -297,7 +297,7 @@ func (s PTPSeconds) Time() time.Time {
 	if s.Empty() {
 		return time.Time{}
 	}
-	return time.Unix(int64(s.Seconds()), 0)
+	return time.Unix(int64(s.Seconds()), 0) // #nosec:G115
 }
 
 // String returns number of seconds in as String
@@ -313,7 +313,7 @@ func NewPTPSeconds(t time.Time) PTPSeconds {
 	if t.IsZero() {
 		return PTPSeconds{}
 	}
-	v := uint64(t.Unix())
+	v := uint64(t.Unix()) // #nosec:G115
 	s := PTPSeconds{}
 	s[0] = byte(v >> 40)
 	s[1] = byte(v >> 32)
@@ -342,7 +342,7 @@ func (t Timestamp) Time() time.Time {
 	if t.Empty() {
 		return time.Time{}
 	}
-	return time.Unix(int64(t.Seconds.Seconds()), int64(t.Nanoseconds))
+	return time.Unix(int64(t.Seconds.Seconds()), int64(t.Nanoseconds)) // #nosec:G115
 }
 
 // Empty timestamp
@@ -364,9 +364,9 @@ func NewTimestamp(t time.Time) Timestamp {
 		return Timestamp{}
 	}
 	ts := Timestamp{
-		Nanoseconds: uint32(t.Nanosecond()),
+		Nanoseconds: uint32(t.Nanosecond()), // #nosec:G115
 	}
-	v := uint64(t.Unix())
+	v := uint64(t.Unix()) // #nosec:G115
 	ts.Seconds[0] = byte(v >> 40)
 	ts.Seconds[1] = byte(v >> 32)
 	ts.Seconds[2] = byte(v >> 24)
@@ -611,7 +611,7 @@ func (p *PTPText) MarshalBinary() ([]byte, error) {
 	if len(rawText) > 255 {
 		return nil, fmt.Errorf("text is too long")
 	}
-	length := uint8(len(rawText))
+	length := uint8(len(rawText)) // #nosec:G115
 	var bytes bytes.Buffer
 	if err := binary.Write(&bytes, binary.BigEndian, length); err != nil {
 		return nil, err

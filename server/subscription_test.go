@@ -143,12 +143,12 @@ func TestSubscriptionStop(t *testing.T) {
 	if !ok {
 		t.Fatalf("could not assert TLV type")
 	}
-	if tlv.TLVHead.TLVType != ptp.TLVCancelUnicastTransmission {
-		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVHead.TLVType, ptp.TLVCancelUnicastTransmission)
+	if tlv.TLVType != ptp.TLVCancelUnicastTransmission {
+		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVType, ptp.TLVCancelUnicastTransmission)
 	}
-	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{}))
-	if s.signaling.Header.MessageLength != expectedLen {
-		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.Header.MessageLength, expectedLen)
+	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{})) //#nosec:G115
+	if s.signaling.MessageLength != expectedLen {
+		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.MessageLength, expectedLen)
 	}
 }
 
@@ -186,14 +186,14 @@ func TestSubscriptionflags(t *testing.T) {
 	sc.UpdateSync()
 	sc.UpdateFollowup(time.Now())
 	sc.UpdateAnnounce()
-	if sc.Sync().Header.FlagField != ptp.FlagUnicast|ptp.FlagTwoStep {
-		t.Errorf("unexpected sync flags: got %v, want %v", sc.Sync().Header.FlagField, ptp.FlagUnicast|ptp.FlagTwoStep)
+	if sc.Sync().FlagField != ptp.FlagUnicast|ptp.FlagTwoStep {
+		t.Errorf("unexpected sync flags: got %v, want %v", sc.Sync().FlagField, ptp.FlagUnicast|ptp.FlagTwoStep)
 	}
-	if sc.Followup().Header.FlagField != ptp.FlagUnicast {
-		t.Errorf("unexpected followup flags: got %v, want %v", sc.Followup().Header.FlagField, ptp.FlagUnicast)
+	if sc.Followup().FlagField != ptp.FlagUnicast {
+		t.Errorf("unexpected followup flags: got %v, want %v", sc.Followup().FlagField, ptp.FlagUnicast)
 	}
-	if sc.Announce().Header.FlagField != ptp.FlagUnicast|ptp.FlagPTPTimescale {
-		t.Errorf("unexpected announce flags: got %v, want %v", sc.Announce().Header.FlagField, ptp.FlagUnicast|ptp.FlagPTPTimescale)
+	if sc.Announce().FlagField != ptp.FlagUnicast|ptp.FlagPTPTimescale {
+		t.Errorf("unexpected announce flags: got %v, want %v", sc.Announce().FlagField, ptp.FlagUnicast|ptp.FlagPTPTimescale)
 	}
 }
 
@@ -215,14 +215,14 @@ func TestSyncPacket(t *testing.T) {
 	sc.initSync()
 	sc.IncSequenceID()
 	sc.UpdateSync()
-	if sc.Sync().Header.MessageLength != 44 {
-		t.Errorf("unexpected sync packet length: got %d, want 44", sc.Sync().Header.MessageLength)
+	if sc.Sync().MessageLength != 44 {
+		t.Errorf("unexpected sync packet length: got %d, want 44", sc.Sync().MessageLength)
 	}
-	if sc.Sync().Header.SequenceID != sequenceID+1 {
-		t.Errorf("unexpected sync sequence id: got %d, want %d", sc.Sync().Header.SequenceID, sequenceID+1)
+	if sc.Sync().SequenceID != sequenceID+1 {
+		t.Errorf("unexpected sync sequence id: got %d, want %d", sc.Sync().SequenceID, sequenceID+1)
 	}
-	if sc.Sync().Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected sync domain number: got %d, want %d", sc.Sync().Header.DomainNumber, domainNumber)
+	if sc.Sync().DomainNumber != domainNumber {
+		t.Errorf("unexpected sync domain number: got %d, want %d", sc.Sync().DomainNumber, domainNumber)
 	}
 }
 
@@ -244,17 +244,17 @@ func TestSyncDelayReqPacket(t *testing.T) {
 
 	sc.initSync()
 	sc.UpdateSyncDelayReq(received, sequenceID)
-	if sc.Sync().Header.MessageLength != 44 {
-		t.Errorf("unexpected sync packet length: got %d, want 44", sc.Sync().Header.MessageLength)
+	if sc.Sync().MessageLength != 44 {
+		t.Errorf("unexpected sync packet length: got %d, want 44", sc.Sync().MessageLength)
 	}
-	if sc.Sync().Header.SequenceID != sequenceID {
-		t.Errorf("unexpected sync sequence id: got %d, want %d", sc.Sync().Header.SequenceID, sequenceID)
+	if sc.Sync().SequenceID != sequenceID {
+		t.Errorf("unexpected sync sequence id: got %d, want %d", sc.Sync().SequenceID, sequenceID)
 	}
-	if sc.Sync().Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected sync domain number: got %d, want %d", sc.Sync().Header.DomainNumber, domainNumber)
+	if sc.Sync().DomainNumber != domainNumber {
+		t.Errorf("unexpected sync domain number: got %d, want %d", sc.Sync().DomainNumber, domainNumber)
 	}
-	if !reflect.DeepEqual(sc.Sync().SyncDelayReqBody.OriginTimestamp, ptp.NewTimestamp(received)) {
-		t.Errorf("unexpected sync origin timestamp: got %v, want %v", sc.Sync().SyncDelayReqBody.OriginTimestamp, ptp.NewTimestamp(received))
+	if !reflect.DeepEqual(sc.Sync().OriginTimestamp, ptp.NewTimestamp(received)) {
+		t.Errorf("unexpected sync origin timestamp: got %v, want %v", sc.Sync().OriginTimestamp, ptp.NewTimestamp(received))
 	}
 }
 
@@ -285,20 +285,20 @@ func TestFollowupPacket(t *testing.T) {
 	sc.initFollowup()
 	sc.IncSequenceID()
 	sc.UpdateFollowup(now)
-	if sc.Followup().Header.MessageLength != 44 {
-		t.Errorf("unexpected followup packet length: got %d, want 44", sc.Followup().Header.MessageLength)
+	if sc.Followup().MessageLength != 44 {
+		t.Errorf("unexpected followup packet length: got %d, want 44", sc.Followup().MessageLength)
 	}
-	if sc.Followup().Header.SequenceID != sequenceID+1 {
-		t.Errorf("unexpected followup sequence id: got %d, want %d", sc.Followup().Header.SequenceID, sequenceID+1)
+	if sc.Followup().SequenceID != sequenceID+1 {
+		t.Errorf("unexpected followup sequence id: got %d, want %d", sc.Followup().SequenceID, sequenceID+1)
 	}
-	if sc.Followup().Header.LogMessageInterval != i {
-		t.Errorf("unexpected followup log interval: got %v, want %v", sc.Followup().Header.LogMessageInterval, i)
+	if sc.Followup().LogMessageInterval != i {
+		t.Errorf("unexpected followup log interval: got %v, want %v", sc.Followup().LogMessageInterval, i)
 	}
-	if sc.Followup().FollowUpBody.PreciseOriginTimestamp.Time().Unix() != now.Unix() {
-		t.Errorf("unexpected followup origin timestamp: got %v, want %v", sc.Followup().FollowUpBody.PreciseOriginTimestamp.Time(), now)
+	if sc.Followup().PreciseOriginTimestamp.Time().Unix() != now.Unix() {
+		t.Errorf("unexpected followup origin timestamp: got %v, want %v", sc.Followup().PreciseOriginTimestamp.Time(), now)
 	}
-	if sc.Followup().Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected followup domain number: got %d, want %d", sc.Followup().Header.DomainNumber, domainNumber)
+	if sc.Followup().DomainNumber != domainNumber {
+		t.Errorf("unexpected followup domain number: got %d, want %d", sc.Followup().DomainNumber, domainNumber)
 	}
 }
 
@@ -342,29 +342,29 @@ func TestAnnouncePacket(t *testing.T) {
 	sc.UpdateAnnounce()
 
 	announce := sc.Announce()
-	if announce.Header.MessageLength != 64 {
-		t.Errorf("unexpected announce packet length: got %d, want 64", announce.Header.MessageLength)
+	if announce.MessageLength != 64 {
+		t.Errorf("unexpected announce packet length: got %d, want 64", announce.MessageLength)
 	}
-	if announce.Header.SequenceID != sequenceID+1 {
-		t.Errorf("unexpected announce sequence id: got %d, want %d", announce.Header.SequenceID, sequenceID+1)
+	if announce.SequenceID != sequenceID+1 {
+		t.Errorf("unexpected announce sequence id: got %d, want %d", announce.SequenceID, sequenceID+1)
 	}
-	if !reflect.DeepEqual(announce.Header.SourcePortIdentity, sp) {
-		t.Errorf("unexpected announce source port identity: got %v, want %v", announce.Header.SourcePortIdentity, sp)
+	if !reflect.DeepEqual(announce.SourcePortIdentity, sp) {
+		t.Errorf("unexpected announce source port identity: got %v, want %v", announce.SourcePortIdentity, sp)
 	}
-	if announce.Header.LogMessageInterval != i {
-		t.Errorf("unexpected announce log interval: got %v, want %v", announce.Header.LogMessageInterval, i)
+	if announce.LogMessageInterval != i {
+		t.Errorf("unexpected announce log interval: got %v, want %v", announce.LogMessageInterval, i)
 	}
-	if announce.AnnounceBody.GrandmasterClockQuality.ClockClass != ptp.ClockClass7 {
-		t.Errorf("unexpected announce clock class: got %v, want %v", announce.AnnounceBody.GrandmasterClockQuality.ClockClass, ptp.ClockClass7)
+	if announce.GrandmasterClockQuality.ClockClass != ptp.ClockClass7 {
+		t.Errorf("unexpected announce clock class: got %v, want %v", announce.GrandmasterClockQuality.ClockClass, ptp.ClockClass7)
 	}
-	if announce.AnnounceBody.GrandmasterClockQuality.ClockAccuracy != ptp.ClockAccuracyMicrosecond1 {
-		t.Errorf("unexpected announce clock accuracy: got %v, want %v", announce.AnnounceBody.GrandmasterClockQuality.ClockAccuracy, ptp.ClockAccuracyMicrosecond1)
+	if announce.GrandmasterClockQuality.ClockAccuracy != ptp.ClockAccuracyMicrosecond1 {
+		t.Errorf("unexpected announce clock accuracy: got %v, want %v", announce.GrandmasterClockQuality.ClockAccuracy, ptp.ClockAccuracyMicrosecond1)
 	}
-	if announce.AnnounceBody.CurrentUTCOffset != int16(UTCOffset.Seconds()) {
-		t.Errorf("unexpected announce utc offset: got %v, want %v", announce.AnnounceBody.CurrentUTCOffset, int16(UTCOffset.Seconds()))
+	if announce.CurrentUTCOffset != int16(UTCOffset.Seconds()) {
+		t.Errorf("unexpected announce utc offset: got %v, want %v", announce.CurrentUTCOffset, int16(UTCOffset.Seconds()))
 	}
-	if announce.Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected announce domain number: got %d, want %d", announce.Header.DomainNumber, domainNumber)
+	if announce.DomainNumber != domainNumber {
+		t.Errorf("unexpected announce domain number: got %d, want %d", announce.DomainNumber, domainNumber)
 	}
 }
 
@@ -403,32 +403,32 @@ func TestAnnounceDelayReqPacket(t *testing.T) {
 	sc.UpdateAnnounceFollowUp(now)
 
 	announce := sc.Announce()
-	if announce.Header.MessageLength != 64 {
-		t.Errorf("unexpected announce packet length: got %d, want 64", announce.Header.MessageLength)
+	if announce.MessageLength != 64 {
+		t.Errorf("unexpected announce packet length: got %d, want 64", announce.MessageLength)
 	}
-	if announce.Header.SequenceID != sequenceID {
-		t.Errorf("unexpected announce sequence id: got %d, want %d", announce.Header.SequenceID, sequenceID)
+	if announce.SequenceID != sequenceID {
+		t.Errorf("unexpected announce sequence id: got %d, want %d", announce.SequenceID, sequenceID)
 	}
-	if !reflect.DeepEqual(announce.Header.SourcePortIdentity, sp) {
-		t.Errorf("unexpected announce source port identity: got %v, want %v", announce.Header.SourcePortIdentity, sp)
+	if !reflect.DeepEqual(announce.SourcePortIdentity, sp) {
+		t.Errorf("unexpected announce source port identity: got %v, want %v", announce.SourcePortIdentity, sp)
 	}
-	if announce.AnnounceBody.GrandmasterClockQuality.ClockClass != ptp.ClockClass7 {
-		t.Errorf("unexpected announce clock class: got %v, want %v", announce.AnnounceBody.GrandmasterClockQuality.ClockClass, ptp.ClockClass7)
+	if announce.GrandmasterClockQuality.ClockClass != ptp.ClockClass7 {
+		t.Errorf("unexpected announce clock class: got %v, want %v", announce.GrandmasterClockQuality.ClockClass, ptp.ClockClass7)
 	}
-	if announce.AnnounceBody.GrandmasterClockQuality.ClockAccuracy != ptp.ClockAccuracyMicrosecond1 {
-		t.Errorf("unexpected announce clock accuracy: got %v, want %v", announce.AnnounceBody.GrandmasterClockQuality.ClockAccuracy, ptp.ClockAccuracyMicrosecond1)
+	if announce.GrandmasterClockQuality.ClockAccuracy != ptp.ClockAccuracyMicrosecond1 {
+		t.Errorf("unexpected announce clock accuracy: got %v, want %v", announce.GrandmasterClockQuality.ClockAccuracy, ptp.ClockAccuracyMicrosecond1)
 	}
-	if announce.AnnounceBody.CurrentUTCOffset != int16(UTCOffset.Seconds()) {
-		t.Errorf("unexpected announce utc offset: got %v, want %v", announce.AnnounceBody.CurrentUTCOffset, int16(UTCOffset.Seconds()))
+	if announce.CurrentUTCOffset != int16(UTCOffset.Seconds()) {
+		t.Errorf("unexpected announce utc offset: got %v, want %v", announce.CurrentUTCOffset, int16(UTCOffset.Seconds()))
 	}
-	if announce.Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected announce domain number: got %d, want %d", announce.Header.DomainNumber, domainNumber)
+	if announce.DomainNumber != domainNumber {
+		t.Errorf("unexpected announce domain number: got %d, want %d", announce.DomainNumber, domainNumber)
 	}
-	if !reflect.DeepEqual(announce.Header.CorrectionField, correctionField) {
-		t.Errorf("unexpected announce correction field: got %v, want %v", announce.Header.CorrectionField, correctionField)
+	if !reflect.DeepEqual(announce.CorrectionField, correctionField) {
+		t.Errorf("unexpected announce correction field: got %v, want %v", announce.CorrectionField, correctionField)
 	}
-	if !reflect.DeepEqual(announce.AnnounceBody.OriginTimestamp, transmit) {
-		t.Errorf("unexpected announce origin timestamp: got %v, want %v", announce.AnnounceBody.OriginTimestamp, transmit)
+	if !reflect.DeepEqual(announce.OriginTimestamp, transmit) {
+		t.Errorf("unexpected announce origin timestamp: got %v, want %v", announce.OriginTimestamp, transmit)
 	}
 }
 
@@ -461,26 +461,26 @@ func TestDelayRespPacket(t *testing.T) {
 	sc.UpdateDelayResp(h, now)
 
 	delayResp := sc.DelayResp()
-	if delayResp.Header.MessageLength != 54 {
-		t.Errorf("unexpected delay_resp packet length: got %d, want 54", delayResp.Header.MessageLength)
+	if delayResp.MessageLength != 54 {
+		t.Errorf("unexpected delay_resp packet length: got %d, want 54", delayResp.MessageLength)
 	}
-	if delayResp.Header.SequenceID != sequenceID {
-		t.Errorf("unexpected delay_resp sequence id: got %d, want %d", delayResp.Header.SequenceID, sequenceID)
+	if delayResp.SequenceID != sequenceID {
+		t.Errorf("unexpected delay_resp sequence id: got %d, want %d", delayResp.SequenceID, sequenceID)
 	}
-	if int(delayResp.Header.CorrectionField.Nanoseconds()) != 100500 {
-		t.Errorf("unexpected delay_resp correction field: got %f, want 100500", delayResp.Header.CorrectionField.Nanoseconds())
+	if int(delayResp.CorrectionField.Nanoseconds()) != 100500 {
+		t.Errorf("unexpected delay_resp correction field: got %f, want 100500", delayResp.CorrectionField.Nanoseconds())
 	}
-	if !reflect.DeepEqual(delayResp.Header.SourcePortIdentity, sp) {
-		t.Errorf("unexpected delay_resp source port identity: got %v, want %v", delayResp.Header.SourcePortIdentity, sp)
+	if !reflect.DeepEqual(delayResp.SourcePortIdentity, sp) {
+		t.Errorf("unexpected delay_resp source port identity: got %v, want %v", delayResp.SourcePortIdentity, sp)
 	}
 	if delayResp.DelayRespBody.ReceiveTimestamp.Time().Unix() != now.Unix() {
-		t.Errorf("unexpected delay_resp receive timestamp: got %v, want %v", delayResp.DelayRespBody.ReceiveTimestamp.Time(), now)
+		t.Errorf("unexpected delay_resp receive timestamp: got %v, want %v", delayResp.ReceiveTimestamp.Time(), now)
 	}
-	if delayResp.Header.FlagField != ptp.FlagUnicast {
-		t.Errorf("unexpected delay_resp flags: got %v, want %v", delayResp.Header.FlagField, ptp.FlagUnicast)
+	if delayResp.FlagField != ptp.FlagUnicast {
+		t.Errorf("unexpected delay_resp flags: got %v, want %v", delayResp.FlagField, ptp.FlagUnicast)
 	}
-	if delayResp.Header.DomainNumber != domainNumber {
-		t.Errorf("unexpected delay_resp domain number: got %d, want %d", delayResp.Header.DomainNumber, domainNumber)
+	if delayResp.DomainNumber != domainNumber {
+		t.Errorf("unexpected delay_resp domain number: got %d, want %d", delayResp.DomainNumber, domainNumber)
 	}
 }
 
@@ -503,7 +503,7 @@ func TestSignalingGrantPacket(t *testing.T) {
 	tlv := &ptp.GrantUnicastTransmissionTLV{
 		TLVHead: ptp.TLVHead{
 			TLVType:     ptp.TLVGrantUnicastTransmission,
-			LengthField: uint16(binary.Size(ptp.GrantUnicastTransmissionTLV{}) - binary.Size(ptp.TLVHead{})),
+			LengthField: uint16(binary.Size(ptp.GrantUnicastTransmissionTLV{}) - binary.Size(ptp.TLVHead{})), //#nosec:G115
 		},
 		MsgTypeAndReserved:    mt,
 		LogInterMessagePeriod: i,
@@ -515,8 +515,8 @@ func TestSignalingGrantPacket(t *testing.T) {
 	sc.initSignaling()
 	sc.UpdateSignalingGrant(sg, mt, i, duration)
 
-	if sc.Signaling().Header.MessageLength != 56 {
-		t.Errorf("unexpected signaling grant packet length: got %d, want 56", sc.Signaling().Header.MessageLength)
+	if sc.Signaling().MessageLength != 56 {
+		t.Errorf("unexpected signaling grant packet length: got %d, want 56", sc.Signaling().MessageLength)
 	}
 	if !reflect.DeepEqual(sc.Signaling().TLVs[0], tlv) {
 		t.Errorf("unexpected signaling grant tlv:\ngot:  %+v\nwant: %+v", sc.Signaling().TLVs[0], tlv)
@@ -529,9 +529,9 @@ func TestSignalingCancelPacket(t *testing.T) {
 	sa := timestamp.IPToSockaddr(net.ParseIP("127.0.0.1"), 123)
 	sc := NewSubscriptionClient(w.queue, w.signalingQueue, sa, sa, ptp.MessageAnnounce, c, time.Second, time.Time{})
 
-	sc.signaling.Header.MessageLength = uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{}))
+	sc.signaling.MessageLength = uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{})) //#nosec:G115
 	tlv := &ptp.CancelUnicastTransmissionTLV{
-		TLVHead:         ptp.TLVHead{TLVType: ptp.TLVCancelUnicastTransmission, LengthField: uint16(binary.Size(ptp.CancelUnicastTransmissionTLV{}) - binary.Size(ptp.TLVHead{}))},
+		TLVHead:         ptp.TLVHead{TLVType: ptp.TLVCancelUnicastTransmission, LengthField: uint16(binary.Size(ptp.CancelUnicastTransmissionTLV{}) - binary.Size(ptp.TLVHead{}))}, //#nosec:G115
 		Reserved:        0,
 		MsgTypeAndFlags: ptp.NewUnicastMsgTypeAndFlags(ptp.MessageAnnounce, 0),
 	}
@@ -539,8 +539,8 @@ func TestSignalingCancelPacket(t *testing.T) {
 	sc.initSignaling()
 	sc.UpdateSignalingCancel()
 
-	if sc.Signaling().Header.MessageLength != 50 {
-		t.Errorf("unexpected signaling cancel packet length: got %d, want 50", sc.Signaling().Header.MessageLength)
+	if sc.Signaling().MessageLength != 50 {
+		t.Errorf("unexpected signaling cancel packet length: got %d, want 50", sc.Signaling().MessageLength)
 	}
 	if !reflect.DeepEqual(sc.Signaling().TLVs[0], tlv) {
 		t.Errorf("unexpected signaling cancel tlv:\ngot:  %+v\nwant: %+v", sc.Signaling().TLVs[0], tlv)
@@ -574,12 +574,12 @@ func TestSendSignalingGrant(t *testing.T) {
 	if !ok {
 		t.Fatal("could not assert TLV type")
 	}
-	if tlv.TLVHead.TLVType != ptp.TLVGrantUnicastTransmission {
-		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVHead.TLVType, ptp.TLVGrantUnicastTransmission)
+	if tlv.TLVType != ptp.TLVGrantUnicastTransmission {
+		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVType, ptp.TLVGrantUnicastTransmission)
 	}
-	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.GrantUnicastTransmissionTLV{}))
-	if s.signaling.Header.MessageLength != expectedLen {
-		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.Header.MessageLength, expectedLen)
+	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.GrantUnicastTransmissionTLV{})) //#nosec:G115
+	if s.signaling.MessageLength != expectedLen {
+		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.MessageLength, expectedLen)
 	}
 }
 
@@ -610,11 +610,11 @@ func TestSendSignalingCancel(t *testing.T) {
 	if !ok {
 		t.Fatal("could not assert TLV type")
 	}
-	if tlv.TLVHead.TLVType != ptp.TLVCancelUnicastTransmission {
-		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVHead.TLVType, ptp.TLVCancelUnicastTransmission)
+	if tlv.TLVType != ptp.TLVCancelUnicastTransmission {
+		t.Fatalf("unexpected tlv type, got %v, want %v", tlv.TLVType, ptp.TLVCancelUnicastTransmission)
 	}
-	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{}))
-	if s.signaling.Header.MessageLength != expectedLen {
-		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.Header.MessageLength, expectedLen)
+	expectedLen := uint16(binary.Size(ptp.Header{}) + binary.Size(ptp.PortIdentity{}) + binary.Size(ptp.CancelUnicastTransmissionTLV{})) //#nosec:G115
+	if s.signaling.MessageLength != expectedLen {
+		t.Fatalf("unexpected message length, got %d, want %d", s.signaling.MessageLength, expectedLen)
 	}
 }

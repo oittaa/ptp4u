@@ -238,43 +238,43 @@ func (c *counters) toMap() (export map[string]int64) {
 
 	for _, t := range c.subscriptions.keys() {
 		c := c.subscriptions.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("subscriptions.%s", mt)] = c
 	}
 
 	for _, t := range c.rx.keys() {
 		c := c.rx.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("rx.%s", mt)] = c
 	}
 
 	for _, t := range c.tx.keys() {
 		c := c.tx.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("tx.%s", mt)] = c
 	}
 
 	for _, t := range c.rxSignalingGrant.keys() {
 		c := c.rxSignalingGrant.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("rx.signaling.grant.%s", mt)] = c
 	}
 
 	for _, t := range c.rxSignalingCancel.keys() {
 		c := c.rxSignalingCancel.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("rx.signaling.cancel.%s", mt)] = c
 	}
 
 	for _, t := range c.txSignalingGrant.keys() {
 		c := c.txSignalingGrant.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("tx.signaling.grant.%s", mt)] = c
 	}
 
 	for _, t := range c.txSignalingCancel.keys() {
 		c := c.txSignalingCancel.load(t)
-		mt := strings.ToLower(ptp.MessageType(t).String())
+		mt := strings.ToLower(ptp.MessageType(t).String()) //#nosec:G115
 		res[fmt.Sprintf("tx.signaling.cancel.%s", mt)] = c
 	}
 
