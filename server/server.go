@@ -21,13 +21,14 @@ package server
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
+	"hash/maphash"
 	"log/slog"
 	"net"
 	"os"
 	"os/signal"
 	"time"
-	"unsafe"
 
 	ptp "github.com/oittaa/ptp4u/protocol"
 
@@ -35,7 +36,6 @@ import (
 	"github.com/oittaa/ptp4u/stats"
 	"github.com/oittaa/ptp4u/timestamp"
 
-	"github.com/cespare/xxhash/v2"
 	"golang.org/x/sys/unix"
 )
 
@@ -57,6 +57,9 @@ type Server struct {
 
 // fixed subscription duration for sptp clients
 const subscriptionDuration = time.Minute * 5
+
+// Ensures client-to-worker assignments are randomized on each server restart
+var seed = maphash.MakeSeed()
 
 // Start the workers send bind to event and general UDP ports
 func (s *Server) Start() error {
@@ -461,10 +464,12 @@ func (s *Server) handleGeneralMessages(generalConn *net.UDPConn) {
 }
 
 func (s *Server) findWorker(clientID ptp.PortIdentity, offset int64) *sendWorker {
-	val := int64(clientID.ClockIdentity) + int64(clientID.PortNumber) + offset //#nosec:G115
-	hashableBytes := unsafe.Slice((*byte)(unsafe.Pointer(&val)), 8)            //#nosec:G103
-	hash := xxhash.Sum64(hashableBytes)
-	return s.sw[hash%uint64(s.Config.SendWorkers)] //#nosec:G115
+	var b [18]byte
+	binary.LittleEndian.PutUint64(b[0:8], uint64(clientID.ClockIdentity))
+	binary.LittleEndian.PutUint16(b[8:10], uint16(clientID.PortNumber))
+	binary.LittleEndian.PutUint64(b[10:18], uint64(offset)) //#nosec:G115
+	hash := maphash.Bytes(seed, b[:])
+	return s.sw[hash%uint64(len(s.sw))]
 }
 
 // Drain traffic
