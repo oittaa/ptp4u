@@ -110,6 +110,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if c.MonitoringPort <= 0 || c.MonitoringPort > 65535 {
+		slog.Error("Invalid monitoring port.", "port", c.MonitoringPort)
+		os.Exit(1)
+	}
+
+	if c.QueueSize < 0 {
+		slog.Error("Queue size cannot be negative.", "queue", c.QueueSize)
+		os.Exit(1)
+	}
+
 	switch c.TimestampType {
 	case timestamp.SW:
 		slog.Warn("Software timestamps greatly reduce the precision")
@@ -122,6 +132,10 @@ func main() {
 	}
 
 	c.IP = net.ParseIP(ipaddr)
+	if c.IP == nil {
+		slog.Error("Invalid IP address provided.", "ip", ipaddr)
+		os.Exit(1)
+	}
 	found, err := c.IfaceHasIP()
 	if err != nil {
 		slog.Error("Checking IP failed.", "iface", c.Interface, "error", err)
@@ -133,6 +147,10 @@ func main() {
 	}
 
 	if c.DebugAddr != "" {
+		if _, _, err := net.SplitHostPort(c.DebugAddr); err != nil {
+			slog.Error("Invalid pprof address format. Expected host:port", "pprofaddr", c.DebugAddr, "error", err)
+			os.Exit(1)
+		}
 		slog.Warn("Starting profiler.", "pprofaddr", c.DebugAddr)
 		pprofMux := http.NewServeMux()
 		pprofMux.HandleFunc("/debug/pprof/", pprof.Index)
@@ -175,7 +193,7 @@ func main() {
 	}
 
 	if err := s.Start(); err != nil {
-		slog.Error("Server run failed:", "err", err)
+		slog.Error("Server run failed:", "error", err)
 		os.Exit(1)
 	}
 }
