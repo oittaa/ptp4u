@@ -100,6 +100,16 @@ func main() {
 		os.Exit(1)
 	}
 
+	if c.RecvWorkers <= 0 {
+		slog.Error("Number of receive workers must be greater than zero.", "recvworkers", c.RecvWorkers)
+		os.Exit(1)
+	}
+
+	if c.SendWorkers <= 0 {
+		slog.Error("Number of send workers must be greater than zero.", "workers", c.SendWorkers)
+		os.Exit(1)
+	}
+
 	switch c.TimestampType {
 	case timestamp.SW:
 		slog.Warn("Software timestamps greatly reduce the precision")

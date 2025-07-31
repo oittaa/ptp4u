@@ -75,7 +75,7 @@ func TestFindWorker(t *testing.T) {
 		clockIdentity: ptp.ClockIdentity(1234),
 		StaticConfig: StaticConfig{
 			TimestampType: timestamp.SW,
-			SendWorkers:   10,
+			SendWorkers:   100,
 		},
 	}
 	s := Server{
@@ -103,22 +103,29 @@ func TestFindWorker(t *testing.T) {
 		ClockIdentity: ptp.ClockIdentity(5678),
 	}
 
+	expected1 := s.findWorker(clipi1, 0).id
 	// Consistent across multiple calls
-	if id := s.findWorker(clipi1, 0).id; id != 3 {
-		t.Errorf("expected worker id 3, got %d", id)
+	if id := s.findWorker(clipi1, 0).id; id != expected1 {
+		t.Errorf("expected worker id %d, got %d", expected1, id)
 	}
-	if id := s.findWorker(clipi1, 0).id; id != 3 {
-		t.Errorf("expected worker id 3, got %d", id)
+	if id := s.findWorker(clipi1, 0).id; id != expected1 {
+		t.Errorf("expected worker id %d, got %d", expected1, id)
 	}
-	if id := s.findWorker(clipi1, 0).id; id != 3 {
-		t.Errorf("expected worker id 3, got %d", id)
+	if id := s.findWorker(clipi1, 0).id; id != expected1 {
+		t.Errorf("expected worker id %d, got %d", expected1, id)
 	}
 
-	if id := s.findWorker(clipi2, 0).id; id != 7 {
-		t.Errorf("expected worker id 7, got %d", id)
+	expected2 := s.findWorker(clipi2, 0).id
+	if id := s.findWorker(clipi2, 0).id; id != expected2 {
+		t.Errorf("expected worker id %d, got %d", expected2, id)
 	}
-	if id := s.findWorker(clipi3, 0).id; id != 6 {
-		t.Errorf("expected worker id 6, got %d", id)
+	expected3 := s.findWorker(clipi3, 0).id
+	if id := s.findWorker(clipi3, 0).id; id != expected3 {
+		t.Errorf("expected worker id %d, got %d", expected3, id)
+	}
+	expected4 := s.findWorker(clipi1, 1).id
+	if expected1 == expected2 && expected2 == expected3 && expected3 == expected4 {
+		t.Errorf("expected at least one different worker id, got %d %d %d %d", expected1, expected2, expected3, expected4)
 	}
 }
 
@@ -327,4 +334,31 @@ func TestHandleSigterm(t *testing.T) {
 
 	// Check that the pid file was removed
 	noFileExists(t, c.PidFile)
+}
+
+func BenchmarkFindWorker(b *testing.B) {
+	c := &Config{
+		clockIdentity: ptp.ClockIdentity(1234),
+		StaticConfig: StaticConfig{
+			TimestampType: timestamp.SW,
+			SendWorkers:   100,
+		},
+	}
+	s := Server{
+		Config: c,
+		Stats:  stats.NewJSONStats(),
+		sw:     make([]*sendWorker, c.SendWorkers),
+	}
+
+	for i := 0; i < s.Config.SendWorkers; i++ {
+		s.sw[i] = newSendWorker(i, c, s.Stats)
+	}
+
+	clipi1 := ptp.PortIdentity{
+		PortNumber:    1,
+		ClockIdentity: ptp.ClockIdentity(1234),
+	}
+	for n := 0; n < b.N; n++ {
+		_ = s.findWorker(clipi1, 0)
+	}
 }
