@@ -125,7 +125,7 @@ func TestFindWorker(t *testing.T) {
 	}
 	expected4 := s.findWorker(clipi1, 1).id
 	if expected1 == expected2 && expected2 == expected3 && expected3 == expected4 {
-		t.Errorf("expected at least one different worker id, got %d %d %d %d", expected1, expected2, expected3, expected4)
+		t.Errorf("expected at least one different worker id, got only %d with seed %v", expected1, seed)
 	}
 }
 
