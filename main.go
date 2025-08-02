@@ -33,17 +33,8 @@ import (
 )
 
 func main() {
-	// Set reasonable defaults for Dynamic config
 	c := &server.Config{
-		DynamicConfig: server.DynamicConfig{
-			ClockAccuracy:  0x21,
-			ClockClass:     6,
-			DrainInterval:  30 * time.Second,
-			MaxSubDuration: 1 * time.Hour,
-			MetricInterval: 1 * time.Minute,
-			MinSubInterval: 1 * time.Second,
-			UTCOffset:      37 * time.Second,
-		},
+		DynamicConfig: *server.NewDefaultDynamicConfig(),
 	}
 
 	var ipaddr string
@@ -71,6 +62,8 @@ func main() {
 		level = slog.LevelDebug
 	case "info":
 		level = slog.LevelInfo
+	case "warning":
+		fallthrough
 	case "warn":
 		level = slog.LevelWarn
 	case "error":

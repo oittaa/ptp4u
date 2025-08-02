@@ -36,7 +36,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
-var errInsaneUTCoffset = errors.New("UTC offset is outside of sane range")
+var (
+	errInsaneUTCoffset      = errors.New("UTC offset is outside of sane range")
+	errNegativeDuration     = errors.New("duration values cannot be negative")
+	errInconsistentSubInt   = errors.New("maxsubduration must be greater than or equal to minsubinterval")
+	errInvalidClockClass    = errors.New("invalid clock class")
+	errInvalidClockAccuracy = errors.New("invalid clock accuracy")
+)
 
 // dcMux is a dynamic config mutex
 var dcMux = sync.Mutex{}
@@ -86,18 +92,57 @@ type Config struct {
 	clockIdentity ptp.ClockIdentity
 }
 
-// UTCOffsetSanity checks if UTC offset value has an adequate value
-// As of Apr 2022 TAI UTC offset is 37 seconds
-func (dc *DynamicConfig) UTCOffsetSanity() error {
+// Set reasonable defaults for DynamicConfig
+func NewDefaultDynamicConfig() *DynamicConfig {
+	return &DynamicConfig{
+		// Default to reporting accuracy of 100ns
+		ClockAccuracy: 0x21,
+		// Default to a Class 6, indicating a server locked to a primary reference
+		ClockClass:     6,
+		DrainInterval:  30 * time.Second,
+		MaxSubDuration: 1 * time.Hour,
+		MetricInterval: 1 * time.Minute,
+		MinSubInterval: 1 * time.Second,
+		// As of 2025 TAI UTC offset is 37 seconds
+		UTCOffset: 37 * time.Second,
+	}
+}
+
+// SanityCheck performs a validation of the dynamic configuration.
+func (dc *DynamicConfig) SanityCheck() error {
+	// Checks if UTC offset value has an adequate value
 	if dc.UTCOffset < 30*time.Second || dc.UTCOffset > 50*time.Second {
 		return errInsaneUTCoffset
 	}
+
+	// Check for negative durations
+	if dc.DrainInterval < 0 || dc.MaxSubDuration < 0 || dc.MetricInterval < 0 || dc.MinSubInterval < 0 {
+		return errNegativeDuration
+	}
+
+	// Check for logical interval consistency
+	if dc.MaxSubDuration < dc.MinSubInterval {
+		return fmt.Errorf("%w: max (%v) is less than min (%v)", errInconsistentSubInt, dc.MaxSubDuration, dc.MinSubInterval)
+	}
+
+	// Allow everything else except a slave-only clock
+	if dc.ClockClass == ptp.ClockClassSlaveOnly {
+		return fmt.Errorf("%w: %d", errInvalidClockClass, dc.ClockClass)
+	}
+
+	// Validate PTP ClockAccuracy
+	if dc.ClockAccuracy < ptp.ClockAccuracyNanosecond25 || dc.ClockAccuracy > ptp.ClockAccuracySecondGreater10 {
+		if dc.ClockAccuracy != ptp.ClockAccuracyUnknown {
+			return fmt.Errorf("%w: %#x", errInvalidClockAccuracy, dc.ClockAccuracy)
+		}
+	}
+
 	return nil
 }
 
 // ReadDynamicConfig reads dynamic config from the file
 func ReadDynamicConfig(path string) (*DynamicConfig, error) {
-	dc := &DynamicConfig{}
+	dc := NewDefaultDynamicConfig()
 	cData, err := os.ReadFile(path) // #nosec:G304
 	if err != nil {
 		return nil, err
@@ -108,8 +153,8 @@ func ReadDynamicConfig(path string) (*DynamicConfig, error) {
 		return nil, err
 	}
 
-	if err := dc.UTCOffsetSanity(); err != nil {
-		return nil, err
+	if err := dc.SanityCheck(); err != nil {
+		return nil, fmt.Errorf("dynamic config validation failed: %w", err)
 	}
 
 	return dc, nil

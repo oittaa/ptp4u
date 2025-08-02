@@ -27,6 +27,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/goccy/go-yaml"
 	"golang.org/x/sys/unix"
 )
 
@@ -141,33 +142,97 @@ utcoffset: "37s"
 	}
 }
 
-func TestReadDynamicConfigInvalid(t *testing.T) {
-	config := `clockaccuracy: 1
-clockclass: 2
-draininterval: "3s"
-maxsubduration: "4h"
-metricinterval: "5m"
-minsubinterval: "6s"
-utcoffset: "7s"
-`
-	cfg, err := os.CreateTemp("", "ptp4u-*.yaml")
-	if err != nil {
-		t.Fatalf("failed to create temp file: %v", err)
+func TestReadDynamicConfigValidation(t *testing.T) {
+	// baseConfig returns a valid config struct to be modified by each test case.
+	baseConfig := func() DynamicConfig {
+		return DynamicConfig{
+			ClockAccuracy:  33,
+			ClockClass:     6,
+			DrainInterval:  1 * time.Second,
+			MaxSubDuration: 1 * time.Hour,
+			MetricInterval: 1 * time.Minute,
+			MinSubInterval: 1 * time.Second,
+			UTCOffset:      37 * time.Second,
+		}
 	}
-	defer checkRemove(t, cfg.Name())
 
-	_, err = cfg.WriteString(config)
-	if err != nil {
-		t.Fatalf("failed to write to temp config file: %v", err)
+	testCases := []struct {
+		name      string
+		modify    func(c *DynamicConfig) // Function to make the config invalid for the test
+		expectErr error
+	}{
+		{
+			name: "invalid clock class",
+			modify: func(c *DynamicConfig) {
+				c.ClockClass = 255
+			},
+			expectErr: errInvalidClockClass,
+		},
+		{
+			name: "invalid utc offset",
+			modify: func(c *DynamicConfig) {
+				c.UTCOffset = 1 * time.Second
+			},
+			expectErr: errInsaneUTCoffset,
+		},
+		{
+			name: "negative duration",
+			modify: func(c *DynamicConfig) {
+				c.MetricInterval = -1 * time.Second
+			},
+			expectErr: errNegativeDuration,
+		},
+		{
+			name: "inconsistent intervals",
+			modify: func(c *DynamicConfig) {
+				c.MaxSubDuration = 1 * time.Second
+				c.MinSubInterval = 2 * time.Second
+			},
+			expectErr: errInconsistentSubInt,
+		},
+		{
+			name: "invalid clock accuracy",
+			modify: func(c *DynamicConfig) {
+				c.ClockAccuracy = 1 // 0x01 is invalid
+			},
+			expectErr: errInvalidClockAccuracy,
+		},
 	}
-	checkClose(t, cfg)
 
-	dc, err := ReadDynamicConfig(cfg.Name())
-	if !errors.Is(err, errInsaneUTCoffset) {
-		t.Fatalf("expected error %v, got %v", errInsaneUTCoffset, err)
-	}
-	if dc != nil {
-		t.Fatalf("expected nil config on error, got %+v", dc)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			// Create a valid config and then modify it to be invalid for the test.
+			cfg := baseConfig()
+			tc.modify(&cfg)
+
+			// Marshal the struct to YAML, ensuring valid syntax.
+			yamlData, err := yaml.Marshal(cfg)
+			if err != nil {
+				t.Fatalf("failed to marshal test config to yaml: %v", err)
+			}
+
+			// Write the generated YAML to a temporary file.
+			tmpFile, err := os.CreateTemp("", "ptp4u-*.yaml")
+			if err != nil {
+				t.Fatalf("failed to create temp file: %v", err)
+			}
+			defer checkRemove(t, tmpFile.Name())
+
+			_, err = tmpFile.Write(yamlData)
+			if err != nil {
+				t.Fatalf("failed to write to temp config file: %v", err)
+			}
+			checkClose(t, tmpFile)
+
+			// Run ReadDynamicConfig and check for the expected validation error.
+			dc, err := ReadDynamicConfig(tmpFile.Name())
+			if !errors.Is(err, tc.expectErr) {
+				t.Fatalf("expected error containing %q, got %q", tc.expectErr, err)
+			}
+			if dc != nil {
+				t.Fatalf("expected nil config on error, got %+v", dc)
+			}
+		})
 	}
 }
 
@@ -234,22 +299,102 @@ utcoffset: 37s
 	}
 }
 
-func TestUTCOffsetSanity(t *testing.T) {
-	dc := &DynamicConfig{}
-
-	dc.UTCOffset = 10 * time.Second
-	if err := dc.UTCOffsetSanity(); !errors.Is(err, errInsaneUTCoffset) {
-		t.Errorf("expected error %v for UTCOffset %v, got %v", errInsaneUTCoffset, dc.UTCOffset, err)
+func TestDynamicConfigSanityCheck(t *testing.T) {
+	// A baseline valid config to be modified by test cases
+	baseConfig := func() *DynamicConfig {
+		return &DynamicConfig{
+			ClockAccuracy:  0x21, // within 100 ns
+			ClockClass:     6,    // T-BC, Locked
+			DrainInterval:  10 * time.Second,
+			MaxSubDuration: 1 * time.Hour,
+			MinSubInterval: 1 * time.Second,
+			UTCOffset:      37 * time.Second,
+		}
 	}
 
-	dc.UTCOffset = 60 * time.Second
-	if err := dc.UTCOffsetSanity(); !errors.Is(err, errInsaneUTCoffset) {
-		t.Errorf("expected error %v for UTCOffset %v, got %v", errInsaneUTCoffset, dc.UTCOffset, err)
+	testCases := []struct {
+		name      string
+		config    *DynamicConfig
+		expectErr error
+	}{
+		{
+			name:      "valid config",
+			config:    baseConfig(),
+			expectErr: nil,
+		},
+		{
+			name: "insane utc offset too low",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.UTCOffset = 29 * time.Second
+				return c
+			}(),
+			expectErr: errInsaneUTCoffset,
+		},
+		{
+			name: "negative duration",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.MetricInterval = -1 * time.Minute
+				return c
+			}(),
+			expectErr: errNegativeDuration,
+		},
+		{
+			name: "inconsistent subscription interval",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.MinSubInterval = 10 * time.Second
+				c.MaxSubDuration = 9 * time.Second
+				return c
+			}(),
+			expectErr: errInconsistentSubInt,
+		},
+		{
+			name: "invalid clock class slave only",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.ClockClass = 255
+				return c
+			}(),
+			expectErr: errInvalidClockClass,
+		},
+		{
+			name: "valid clock class alternate profile",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.ClockClass = 130
+				return c
+			}(),
+			expectErr: nil,
+		},
+		{
+			name: "invalid clock accuracy",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.ClockAccuracy = 0x70 // Not in any valid range
+				return c
+			}(),
+			expectErr: errInvalidClockAccuracy,
+		},
+		{
+			name: "valid clock accuracy implementation specific",
+			config: func() *DynamicConfig {
+				c := baseConfig()
+				c.ClockAccuracy = 0x8A
+				return c
+			}(),
+			expectErr: nil,
+		},
 	}
 
-	dc.UTCOffset = 37 * time.Second
-	if err := dc.UTCOffsetSanity(); err != nil {
-		t.Errorf("expected no error for UTCOffset %v, got %v", dc.UTCOffset, err)
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.config.SanityCheck()
+			if !errors.Is(err, tc.expectErr) {
+				t.Errorf("SanityCheck() error mismatch:\ngot:  %v\nwant: %v", err, tc.expectErr)
+			}
+		})
 	}
 }
 

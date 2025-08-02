@@ -209,7 +209,7 @@ func TestUndrain(t *testing.T) {
 func TestHandleSighup(t *testing.T) {
 	// Values from the config file below
 	expectedDC := DynamicConfig{
-		ClockAccuracy:  0,
+		ClockAccuracy:  0x31,
 		ClockClass:     1,
 		DrainInterval:  2 * time.Second,
 		MaxSubDuration: 3 * time.Hour,
@@ -261,7 +261,7 @@ func TestHandleSighup(t *testing.T) {
 	}
 	defer checkRemove(t, cfg.Name())
 
-	config := `clockaccuracy: 0 
+	config := `clockaccuracy: 0x31
 clockclass: 1
 draininterval: "2s"
 maxsubduration: "3h"
