@@ -221,8 +221,8 @@ func (t *GrantUnicastTransmissionTLV) UnmarshalBinary(b []byte) error {
 	t.MsgTypeAndReserved = UnicastMsgTypeAndFlags(b[4])
 	t.LogInterMessagePeriod = LogInterval(b[5])
 	t.DurationField = binary.BigEndian.Uint32(b[6:])
-	t.Reserved = b[10]
-	t.Renewal = b[11]
+	t.Reserved = b[10] // #nosec:G602
+	t.Renewal = b[11]  // #nosec:G602
 	return nil
 }
 
@@ -361,7 +361,7 @@ func (t *AlternateTimeOffsetIndicatorTLV) UnmarshalBinary(b []byte) error {
 	}
 	t.KeyField = b[tlvHeadSize]
 	t.CurrentOffset = int32(binary.BigEndian.Uint32(b[tlvHeadSize+1:])) // #nosec:G115
-	t.JumpSeconds = int32(binary.BigEndian.Uint32(b[tlvHeadSize+5:]))   // #nosec:G115
+	t.JumpSeconds = int32(binary.BigEndian.Uint32(b[tlvHeadSize+5:]))   // #nosec:G115:G602
 	copy(t.TimeOfNextJump[:], b[tlvHeadSize+9:])                        // #nosec:G602 uint48
 	// #nosec:G602
 	if err := t.DisplayName.UnmarshalBinary(b[tlvHeadSize+15:]); err != nil {

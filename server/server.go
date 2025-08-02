@@ -282,7 +282,7 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 	var sc *SubscriptionClient
 	var gclisa unix.Sockaddr
 	var expire time.Time
-	var workerOffset int64
+	var workerOffset uint16
 
 	for {
 		bbuf, eclisa, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(s.eFd, buf, oob)
@@ -319,7 +319,7 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 			for _, tlv := range dReq.TLVs {
 				switch v := tlv.(type) {
 				case *ptp.AlternateResponsePortTLV:
-					workerOffset = int64(v.Offset)
+					workerOffset = v.Offset
 				}
 			}
 
@@ -463,11 +463,11 @@ func (s *Server) handleGeneralMessages(generalConn *net.UDPConn) {
 	}
 }
 
-func (s *Server) findWorker(clientID ptp.PortIdentity, offset int64) *sendWorker {
-	var b [18]byte
+func (s *Server) findWorker(clientID ptp.PortIdentity, offset uint16) *sendWorker {
+	var b [12]byte
 	binary.LittleEndian.PutUint64(b[0:8], uint64(clientID.ClockIdentity))
-	binary.LittleEndian.PutUint16(b[8:10], uint16(clientID.PortNumber))
-	binary.LittleEndian.PutUint64(b[10:18], uint64(offset)) //#nosec:G115
+	binary.LittleEndian.PutUint16(b[8:10], clientID.PortNumber)
+	binary.LittleEndian.PutUint16(b[10:12], offset)
 	hash := maphash.Bytes(seed, b[:])
 	return s.sw[hash%uint64(len(s.sw))]
 }
