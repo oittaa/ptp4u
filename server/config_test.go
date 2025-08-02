@@ -378,10 +378,10 @@ func TestDynamicConfigSanityCheck(t *testing.T) {
 			expectErr: errInvalidClockAccuracy,
 		},
 		{
-			name: "valid clock accuracy implementation specific",
+			name: "valid clock accuracy unknown",
 			config: func() *DynamicConfig {
 				c := baseConfig()
-				c.ClockAccuracy = 0x8A
+				c.ClockAccuracy = 0xFE
 				return c
 			}(),
 			expectErr: nil,
