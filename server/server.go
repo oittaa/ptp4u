@@ -285,6 +285,7 @@ func (s *Server) handleEventMessages(eventConn *net.UDPConn) {
 	var workerOffset uint16
 
 	for {
+		workerOffset = 0
 		bbuf, eclisa, rxTS, err := timestamp.ReadPacketWithRXTimestampBuf(s.eFd, buf, oob)
 		if err != nil {
 			slog.Error("Failed to read packet on", "LocalAddr", eventConn.LocalAddr(), "error", err)

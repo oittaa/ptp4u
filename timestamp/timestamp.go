@@ -135,16 +135,6 @@ func ConnFd(conn *net.UDPConn) (int, error) {
 	return intfd, nil
 }
 
-// ReadPacketWithRXTimestamp returns byte packet and HW RX timestamp
-func ReadPacketWithRXTimestamp(connFd int) ([]byte, unix.Sockaddr, time.Time, error) {
-	// Accessing hw timestamp
-	buf := make([]byte, PayloadSizeBytes)
-	oob := make([]byte, ControlSizeBytes)
-
-	bbuf, sa, t, err := ReadPacketWithRXTimestampBuf(connFd, buf, oob)
-	return buf[:bbuf], sa, t, err
-}
-
 // ReadPacketWithRXTimestampBuf writes byte packet into provide buffer buf, and returns number of bytes copied to the buffer, client ip and HW RX timestamp.
 // oob buffer can be reaused after ReadPacketWithRXTimestampBuf call.
 func ReadPacketWithRXTimestampBuf(connFd int, buf, oob []byte) (int, unix.Sockaddr, time.Time, error) {

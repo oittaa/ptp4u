@@ -29,6 +29,7 @@ func TestMsgTypeAndFlags(t *testing.T) {
 }
 
 func TestParseRequestUnicastTransmissionMultiTLV(t *testing.T) {
+	b := make([]byte, 128)
 	raw := []uint8{0x0c, 0x02, 0x00, 0x4a, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb8, 0x59, 0x9f, 0xff, 0xfe, 0x55, 0xaf, 0x4e, 0x00, 0x01, 0x00, 0x00, 0x05, 0x7f, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0x00, 0x04, 0x00, 0x06, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x3c, // first TLV
@@ -96,12 +97,12 @@ func TestParseRequestUnicastTransmissionMultiTLV(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -115,6 +116,7 @@ func TestParseRequestUnicastTransmissionMultiTLV(t *testing.T) {
 }
 
 func TestParseRequestUnicastTransmissionExtraBytes(t *testing.T) {
+	b := make([]byte, 128)
 	raw := []uint8{0x0c, 0x02, 0x00, 0x40, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xb8, 0x59, 0x9f, 0xff, 0xfe, 0x55, 0xaf, 0x4e, 0x00, 0x01, 0x00, 0x00, 0x05, 0x7f, 0xff, 0xff,
 		0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,
 		0x00, 0x04, 0x00, 0x06, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x3c, // first TLV
@@ -176,12 +178,12 @@ func TestParseRequestUnicastTransmissionExtraBytes(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw[:len(raw)-len(extraBytes)], b) {
-		t.Errorf("got %v, want %v", b, raw[:len(raw)-len(extraBytes)])
+	if !reflect.DeepEqual(raw[:len(raw)-len(extraBytes)], b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw[:len(raw)-len(extraBytes)])
 	}
 
 	// test generic DecodePacket as well
@@ -195,6 +197,7 @@ func TestParseRequestUnicastTransmissionExtraBytes(t *testing.T) {
 }
 
 func TestParseGrantUnicastTransmission(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{0x0c, 0x02, 0x00, 0x38, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0xe4, 0x1d, 0x2d, 0xff, 0xfe, 0xbb, 0x64, 0x60, 0x00,
@@ -246,12 +249,12 @@ func TestParseGrantUnicastTransmission(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -265,6 +268,7 @@ func TestParseGrantUnicastTransmission(t *testing.T) {
 }
 
 func TestParseCancelUnicastTransmission(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{0x0c, 0x02, 0x00, 0x32, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0xe4, 0x1d, 0x2d, 0xff, 0xfe, 0xbb, 0x64, 0x60, 0x00,
@@ -312,12 +316,12 @@ func TestParseCancelUnicastTransmission(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -331,6 +335,7 @@ func TestParseCancelUnicastTransmission(t *testing.T) {
 }
 
 func TestParseAcknowledgeCancelUnicastTransmission(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{0x0c, 0x02, 0x00, 0x32, 0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		0xe4, 0x1d, 0x2d, 0xff, 0xfe, 0xbb, 0x64, 0x60, 0x00,
@@ -378,12 +383,12 @@ func TestParseAcknowledgeCancelUnicastTransmission(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well

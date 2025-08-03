@@ -33,6 +33,7 @@ func TestTLVHeadType(t *testing.T) {
 }
 
 func TestParseAnnounceWithPathTrace(t *testing.T) {
+	b := make([]byte, 128)
 	raw := []uint8("\x0b\x12\x00\x4c\x00\x00\x04\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xc0\xeb\xff\xfe\x63\x7a\x4e\x00\x01\x00\x00\x05\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x25\x00\x80\xf8\xfe\xff\xff\x80\x08\xc0\xeb\xff\xfe\x63\x7a\x4e\x00\x00\xa0\x00\x08\x00\x18\x08\xc0\xeb\xff\xfe\x63\x7a\x4e\x01\xb6\xaf\xc4\xe5\x46\x12\x29\x04\xc0\x87\x32\xf0\x61\xee\xce\x00\x00")
 	packet := new(Announce)
 	err := FromBytes(raw, packet)
@@ -85,16 +86,16 @@ func TestParseAnnounceWithPathTrace(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
-	pp, err := DecodePacket(b)
+	pp, err := DecodePacket(b[:n])
 	if err != nil {
 		t.Fatalf("DecodePacket() error = %v", err)
 	}
@@ -104,6 +105,7 @@ func TestParseAnnounceWithPathTrace(t *testing.T) {
 }
 
 func TestParseAnnounceWithAlternateTimeOffsetIndicator(t *testing.T) {
+	b := make([]byte, 128)
 	raw := []uint8("\x0b\x12\x00\x5a\x00\x00\x04\x08\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x08\xc0\xeb\xff\xfe\x63\x7a\x4e\x00\x01\x00\x00\x05\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x25\x00\x80\xf8\xfe\xff\xff\x80\x08\xc0\xeb\xff\xfe\x63\x7a\x4e\x00\x00\xa0\x00\x09\x00\x16\x01\x00\x00\x00\x25\x00\x00\x00\x01\x00\x00\x62\xc2\xfd\xb6\x03\x50\x54\x50\x00\x00\x00")
 	packet := new(Announce)
 	err := FromBytes(raw, packet)
@@ -156,12 +158,12 @@ func TestParseAnnounceWithAlternateTimeOffsetIndicator(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -175,6 +177,7 @@ func TestParseAnnounceWithAlternateTimeOffsetIndicator(t *testing.T) {
 }
 
 func TestParseSyncDelayReqWithAlternateResponsePort(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []byte{1, 18, 0, 50, 0, 0, 36, 0, 0, 0, 0, 0, 6, 32, 0, 2, 0, 0, 0, 0, 184, 206, 246, 255, 254, 68, 148, 144, 0, 1, 149, 17, 0, 127, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 7, 0, 2, 16, 146, 0, 0}
 	packet := new(SyncDelayReq)
 	err := FromBytes(raw, packet)
@@ -204,12 +207,12 @@ func TestParseSyncDelayReqWithAlternateResponsePort(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well

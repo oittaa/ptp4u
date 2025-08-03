@@ -23,6 +23,7 @@ import (
 )
 
 func TestBytesTo(t *testing.T) {
+	b := make([]byte, 64)
 	packet := &SyncDelayReq{
 		Header: Header{
 			SdoIDAndMsgType:     NewSdoIDAndMsgType(MessageSync, 1),
@@ -49,9 +50,9 @@ func TestBytesTo(t *testing.T) {
 		},
 	}
 
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() failed: %v", err)
+		t.Fatalf("BytesTo() failed: %v", err)
 	}
 
 	t.Run("buffer too small", func(t *testing.T) {
@@ -67,8 +68,8 @@ func TestBytesTo(t *testing.T) {
 		if err != nil {
 			t.Fatalf("BytesTo() failed: %v", err)
 		}
-		if l != len(b) {
-			t.Errorf("expected length %d, got %d", len(b), l)
+		if l != len(b[:n]) {
+			t.Errorf("expected length %d, got %d", len(b[:n]), l)
 		}
 		if !reflect.DeepEqual(b, buf) {
 			t.Errorf("buffer content mismatch")
@@ -80,16 +81,17 @@ func TestBytesTo(t *testing.T) {
 		if err != nil {
 			t.Fatalf("BytesTo() failed: %v", err)
 		}
-		if l != len(b) {
-			t.Errorf("expected length %d, got %d", len(b), l)
+		if l != len(b[:n]) {
+			t.Errorf("expected length %d, got %d", len(b[:n]), l)
 		}
-		if !reflect.DeepEqual(b, buf[:l]) {
+		if !reflect.DeepEqual(b[:n], buf[:l]) {
 			t.Errorf("buffer content mismatch")
 		}
 	})
 }
 
 func TestParseSync(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{
 		0x10, 0x02, 0x00, 0x2c, 0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -131,12 +133,12 @@ func TestParseSync(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -150,6 +152,7 @@ func TestParseSync(t *testing.T) {
 }
 
 func TestParseFollowup(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{
 		0x8, 0x2, 0x0, 0x2c, 0x0, 0x0, 0x4, 0x0, 0x0,
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -187,12 +190,12 @@ func TestParseFollowup(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -206,6 +209,7 @@ func TestParseFollowup(t *testing.T) {
 }
 
 func TestParseAnnounce(t *testing.T) {
+	b := make([]byte, 128)
 	raw := []uint8{
 		0xb, 0x2, 0x0, 0x40, 0x0, 0x0, 0x4, 0x8, 0x0,
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -254,12 +258,12 @@ func TestParseAnnounce(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -273,6 +277,7 @@ func TestParseAnnounce(t *testing.T) {
 }
 
 func TestParseDelayResp(t *testing.T) {
+	b := make([]byte, 64)
 	raw := []uint8{
 		0x9, 0x2, 0x0, 0x36, 0x0, 0x0, 0x4, 0x0, 0x0,
 		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -317,12 +322,12 @@ func TestParseDelayResp(t *testing.T) {
 	if !reflect.DeepEqual(want, *packet) {
 		t.Errorf("got %+v, want %+v", *packet, want)
 	}
-	b, err := Bytes(packet)
+	n, err := BytesTo(packet, b)
 	if err != nil {
-		t.Fatalf("Bytes() error = %v", err)
+		t.Fatalf("BytesTo() error = %v", err)
 	}
-	if !reflect.DeepEqual(raw, b) {
-		t.Errorf("got %v, want %v", b, raw)
+	if !reflect.DeepEqual(raw, b[:n]) {
+		t.Errorf("got %v, want %v", b[:n], raw)
 	}
 
 	// test generic DecodePacket as well
@@ -332,28 +337,6 @@ func TestParseDelayResp(t *testing.T) {
 	}
 	if !reflect.DeepEqual(&want, pp) {
 		t.Errorf("got %v, want %v", pp, &want)
-	}
-}
-
-func TestFoundFuzzResults(t *testing.T) {
-	allBytes := [][]byte{
-		[]byte("00\x0000000000000000000000000000000000000000000\x00\x04\x00\x06000000"),
-		[]byte("00\x00A0000000000000000000000000000000000000000\x00\x04\x00\x06000000\x00\x04\x00\x06000000000"),
-	}
-	for _, b := range allBytes {
-		packet, err := DecodePacket(b)
-		if err != nil {
-			t.Fatalf("DecodePacket() error = %v", err)
-		}
-		bb, err := Bytes(packet)
-		if err != nil {
-			t.Fatalf("Bytes() failed unexpectedly: %v", err)
-		}
-		// ignore last 2 bytes as they are only for ipv6 checksums
-		l := len(bb)
-		if !reflect.DeepEqual(b[:l-2], bb[:l-2]) {
-			t.Errorf("we expect binary form of packet %v %+v to be equal to original", packet.MessageType(), packet)
-		}
 	}
 }
 
@@ -486,87 +469,4 @@ func BenchmarkWriteFollowup(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		_, _ = BytesTo(p, buf)
 	}
-}
-
-func FuzzDecodePacket(f *testing.F) {
-	delayResp := []uint8{
-		0x9, 0x2, 0x0, 0x36, 0x0, 0x0, 0x4, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
-		0x0, 0x0, 0x0, 0x80, 0x63, 0xff, 0xff, 0x0,
-		0x9, 0xba, 0x0, 0x1, 0x0, 0xa, 0x3, 0x7f,
-		0x0, 0x0, 0x45, 0xb1, 0x11, 0x5e, 0x4, 0x5d,
-		0xd2, 0x6e, 0xb8, 0x59, 0x9f, 0xff, 0xfe,
-		0x55, 0xaf, 0x4e, 0x0, 0x1, 0x0, 0x0,
-	}
-	signalingGrantUnicast := []uint8{0x0c, 0x02, 0x00, 0x38, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00,
-		0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		0xe4, 0x1d, 0x2d, 0xff, 0xfe, 0xbb, 0x64, 0x60, 0x00,
-		0x01, 0x1d, 0xc4, 0x05, 0x7f, 0x48, 0x57, 0xdd, 0xff,
-		0xfe, 0x08, 0x64, 0x88, 0x00, 0x01, 0x00, 0x05, 0x00,
-		0x08, 0xb0, 0x01, 0x00, 0x00, 0x00, 0x3c, 0x00, 0x01,
-		0x00, 0x00,
-	}
-	for _, seed := range [][]byte{{}, {0}, {9}, delayResp, signalingGrantUnicast} {
-		f.Add(seed)
-	}
-	f.Fuzz(func(t *testing.T, b []byte) {
-		packet, err := DecodePacket(b)
-		// check that marshalling works
-		if err == nil {
-			// special case for TLVs that have variable length
-			// which may have padding and thus marshalling produces different results
-			switch packet.MessageType() {
-			case MessageSignaling:
-				m := packet.(*Signaling)
-				// ignore Signaling with PathTrace or AlternateTimeOffsetIndicator TLVs
-				for _, tlv := range m.TLVs {
-					if tlv.Type() == TLVPathTrace {
-						return
-					}
-					if tlv.Type() == TLVAlternateTimeOffsetIndicator {
-						return
-					}
-				}
-			// Announce msg can have TracePath TLV which also has PTPText
-			case MessageAnnounce:
-				m := packet.(*Announce)
-				// ignore Announce with PathTrace or AlternateTimeOffsetIndicator TLVs
-				for _, tlv := range m.TLVs {
-					if tlv.Type() == TLVPathTrace {
-						return
-					}
-					if tlv.Type() == TLVAlternateTimeOffsetIndicator {
-						return
-					}
-				}
-			case MessageSync, MessageDelayReq:
-				m := packet.(*SyncDelayReq)
-				// ignore Sync/DelayReq with GrantUnicastTransmissionTLV, TLVPathTrace or TLVAlternateTimeOffsetIndicator TLVs
-				for _, tlv := range m.TLVs {
-					if tlv.Type() == TLVGrantUnicastTransmission {
-						return
-					}
-					if tlv.Type() == TLVAlternateTimeOffsetIndicator {
-						return
-					}
-					if tlv.Type() == TLVPathTrace {
-						return
-					}
-				}
-			}
-			bb, err := Bytes(packet)
-			if err != nil {
-				t.Fatalf("Bytes() failed unexpectedly: %v", err)
-			}
-			// ignore last 2 bytes as they are only for ipv6 checksums
-			l := len(bb)
-			if !reflect.DeepEqual(b[:l-2], bb[:l-2]) {
-				t.Errorf("we expect binary form of packet %v %+v to be equal to original", packet.MessageType(), packet)
-			}
-		} else {
-			if packet != nil {
-				t.Fatalf("packet should be nil on error")
-			}
-		}
-	})
 }

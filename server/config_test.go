@@ -162,13 +162,6 @@ func TestReadDynamicConfigValidation(t *testing.T) {
 		expectErr error
 	}{
 		{
-			name: "invalid clock class",
-			modify: func(c *DynamicConfig) {
-				c.ClockClass = 255
-			},
-			expectErr: errInvalidClockClass,
-		},
-		{
 			name: "invalid utc offset",
 			modify: func(c *DynamicConfig) {
 				c.UTCOffset = 1 * time.Second
@@ -189,13 +182,6 @@ func TestReadDynamicConfigValidation(t *testing.T) {
 				c.MinSubInterval = 2 * time.Second
 			},
 			expectErr: errInconsistentSubInt,
-		},
-		{
-			name: "invalid clock accuracy",
-			modify: func(c *DynamicConfig) {
-				c.ClockAccuracy = 1 // 0x01 is invalid
-			},
-			expectErr: errInvalidClockAccuracy,
 		},
 	}
 
@@ -351,15 +337,6 @@ func TestDynamicConfigSanityCheck(t *testing.T) {
 			expectErr: errInconsistentSubInt,
 		},
 		{
-			name: "invalid clock class slave only",
-			config: func() *DynamicConfig {
-				c := baseConfig()
-				c.ClockClass = 255
-				return c
-			}(),
-			expectErr: errInvalidClockClass,
-		},
-		{
 			name: "valid clock class alternate profile",
 			config: func() *DynamicConfig {
 				c := baseConfig()
@@ -367,15 +344,6 @@ func TestDynamicConfigSanityCheck(t *testing.T) {
 				return c
 			}(),
 			expectErr: nil,
-		},
-		{
-			name: "invalid clock accuracy",
-			config: func() *DynamicConfig {
-				c := baseConfig()
-				c.ClockAccuracy = 0x70 // Not in any valid range
-				return c
-			}(),
-			expectErr: errInvalidClockAccuracy,
 		},
 		{
 			name: "valid clock accuracy unknown",

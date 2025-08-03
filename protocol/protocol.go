@@ -52,8 +52,6 @@ var (
 // We simply always add them - in worst case they add extra 2 unused bytes when used over UDPv4.
 const TrailingBytes = 2
 
-var twoZeros = []byte{0, 0}
-
 // DefaultTargetPortIdentity is a port identity that means any port
 var DefaultTargetPortIdentity = PortIdentity{
 	ClockIdentity: 0xffffffffffffffff,
@@ -231,13 +229,6 @@ func (p *Announce) UnmarshalBinary(b []byte) error {
 	return nil
 }
 
-// MarshalBinary converts packet to []bytes
-func (p *Announce) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 508)
-	n, err := p.MarshalBinaryTo(buf)
-	return buf[:n], err
-}
-
 // SyncDelayReqBody Table 44 Sync and Delay_Req message fields
 type SyncDelayReqBody struct {
 	OriginTimestamp Timestamp
@@ -261,13 +252,6 @@ func (p *SyncDelayReq) MarshalBinaryTo(b []byte) (int, error) {
 	pos := n + 10
 	tlvLen, err := writeTLVs(p.TLVs, b[pos:])
 	return pos + tlvLen, err
-}
-
-// MarshalBinary converts packet to []bytes
-func (p *SyncDelayReq) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 64)
-	n, err := p.MarshalBinaryTo(buf)
-	return buf[:n], err
 }
 
 // UnmarshalBinary unmarshals bytes to SyncDelayReq
@@ -310,13 +294,6 @@ func (p *FollowUp) MarshalBinaryTo(b []byte) (int, error) {
 	return n + 10, nil
 }
 
-// MarshalBinary converts packet to []bytes
-func (p *FollowUp) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 44)
-	n, err := p.MarshalBinaryTo(buf)
-	return buf[:n], err
-}
-
 // UnmarshalBinary unmarshals bytes to FollowUp
 func (p *FollowUp) UnmarshalBinary(b []byte) error {
 	if len(b) < headerSize+10 {
@@ -356,13 +333,6 @@ func (p *DelayResp) MarshalBinaryTo(b []byte) (int, error) {
 	return n + 20, nil
 }
 
-// MarshalBinary converts packet to []bytes
-func (p *DelayResp) MarshalBinary() ([]byte, error) {
-	buf := make([]byte, 54)
-	n, err := p.MarshalBinaryTo(buf)
-	return buf[:n], err
-}
-
 // UnmarshalBinary unmarshals bytes to DelayResp
 func (p *DelayResp) UnmarshalBinary(b []byte) error {
 	if len(b) < headerSize+20 {
@@ -400,22 +370,6 @@ func BytesTo(p BinaryMarshalerTo, buf []byte) (int, error) {
 	buf[n] = 0x0
 	buf[n+1] = 0x0
 	return n + 2, nil
-}
-
-// Bytes converts any packet to []bytes
-func Bytes(p Packet) ([]byte, error) {
-	// interface smuggling
-	if pp, ok := p.(encoding.BinaryMarshaler); ok {
-		b, err := pp.MarshalBinary()
-		return append(b, twoZeros...), err
-	}
-	var bytes bytes.Buffer
-	err := binary.Write(&bytes, binary.BigEndian, p)
-	if err != nil {
-		return nil, err
-	}
-	err = binary.Write(&bytes, binary.BigEndian, twoZeros)
-	return bytes.Bytes(), err
 }
 
 // FromBytes parses []byte into any packet

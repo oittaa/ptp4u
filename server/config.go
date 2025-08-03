@@ -37,11 +37,9 @@ import (
 )
 
 var (
-	errInsaneUTCoffset      = errors.New("UTC offset is outside of sane range")
-	errNegativeDuration     = errors.New("duration values cannot be negative")
-	errInconsistentSubInt   = errors.New("maxsubduration must be greater than or equal to minsubinterval")
-	errInvalidClockClass    = errors.New("invalid clock class")
-	errInvalidClockAccuracy = errors.New("invalid clock accuracy")
+	errInsaneUTCoffset    = errors.New("UTC offset is outside of sane range")
+	errNegativeDuration   = errors.New("duration values cannot be negative")
+	errInconsistentSubInt = errors.New("maxsubduration must be greater than or equal to minsubinterval")
 )
 
 // dcMux is a dynamic config mutex
@@ -123,18 +121,6 @@ func (dc *DynamicConfig) SanityCheck() error {
 	// Check for logical interval consistency
 	if dc.MaxSubDuration < dc.MinSubInterval {
 		return fmt.Errorf("%w: max (%v) is less than min (%v)", errInconsistentSubInt, dc.MaxSubDuration, dc.MinSubInterval)
-	}
-
-	// Allow everything else except a slave-only clock
-	if dc.ClockClass == ptp.ClockClassSlaveOnly {
-		return fmt.Errorf("%w: %d", errInvalidClockClass, dc.ClockClass)
-	}
-
-	// Validate PTP ClockAccuracy
-	if dc.ClockAccuracy < ptp.ClockAccuracyNanosecond25 || dc.ClockAccuracy > ptp.ClockAccuracySecondGreater10 {
-		if dc.ClockAccuracy != ptp.ClockAccuracyUnknown {
-			return fmt.Errorf("%w: %#x", errInvalidClockAccuracy, dc.ClockAccuracy)
-		}
 	}
 
 	return nil

@@ -327,7 +327,9 @@ func TestSocketControlMessageTimestampFail(t *testing.T) {
 	}
 }
 
-func TestReadPacketWithRXTimestamp(t *testing.T) {
+func TestReadPacketWithRXTimestampBuf(t *testing.T) {
+	buf := make([]byte, PayloadSizeBytes)
+	oob := make([]byte, ControlSizeBytes)
 	request := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 42}
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("localhost"), Port: 0})
 	if err != nil {
@@ -361,13 +363,13 @@ func TestReadPacketWithRXTimestamp(t *testing.T) {
 		t.Fatalf("cconn.Write failed: %v", err)
 	}
 
-	data, returnaddr, nowKernelTimestamp, err := ReadPacketWithRXTimestamp(connFd)
+	n, returnaddr, nowKernelTimestamp, err := ReadPacketWithRXTimestampBuf(connFd, buf, oob)
 	if err != nil {
-		t.Fatalf("ReadPacketWithRXTimestamp failed: %v", err)
+		t.Fatalf("ReadPacketWithRXTimestampBuf failed: %v", err)
 	}
 
-	if !bytes.Equal(request, data) {
-		t.Fatalf("We should have the same request arriving on the server. Expected %v, got %v", request, data)
+	if !bytes.Equal(request, buf[:n]) {
+		t.Fatalf("We should have the same request arriving on the server. Expected %v, got %v", request, buf[:n])
 	}
 	if time.Now().Unix()/10 != nowKernelTimestamp.Unix()/10 {
 		t.Fatalf("kernel timestamps should be within 10s. Now: %d, Kernel: %d", time.Now().Unix(), nowKernelTimestamp.Unix())
@@ -375,7 +377,9 @@ func TestReadPacketWithRXTimestamp(t *testing.T) {
 	requireEqualNetAddrSockAddr(t, cconn.LocalAddr(), returnaddr)
 }
 
-func TestReadPacketWithRXTXTimestamp(t *testing.T) {
+func TestReadPacketWithRXTXTimestampBuf(t *testing.T) {
+	buf := make([]byte, PayloadSizeBytes)
+	oob := make([]byte, ControlSizeBytes)
 	request := []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 42}
 	conn, err := net.ListenUDP("udp", &net.UDPAddr{IP: net.ParseIP("localhost"), Port: 0})
 	if err != nil {
@@ -409,12 +413,12 @@ func TestReadPacketWithRXTXTimestamp(t *testing.T) {
 		t.Fatalf("cconn.Write failed: %v", err)
 	}
 
-	data, returnaddr, nowKernelTimestamp, err := ReadPacketWithRXTimestamp(connFd)
+	n, returnaddr, nowKernelTimestamp, err := ReadPacketWithRXTimestampBuf(connFd, buf, oob)
 	if err != nil {
 		t.Fatalf("ReadPacketWithRXTimestamp failed: %v", err)
 	}
-	if !bytes.Equal(request, data) {
-		t.Fatalf("We should have the same request arriving on the server. Expected %v, got %v", request, data)
+	if !bytes.Equal(request, buf[:n]) {
+		t.Fatalf("We should have the same request arriving on the server. Expected %v, got %v", request, buf[:n])
 	}
 	if time.Now().Unix()/10 != nowKernelTimestamp.Unix()/10 {
 		t.Fatalf("kernel timestamps should be within 10s. Now: %d, Kernel: %d", time.Now().Unix(), nowKernelTimestamp.Unix())
