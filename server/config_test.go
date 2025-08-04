@@ -31,6 +31,131 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+func TestConfigValidate(t *testing.T) {
+	baseConfig := func() *Config {
+		return &Config{
+			StaticConfig: StaticConfig{
+				DSCP:           48,
+				DomainNumber:   24,
+				Interface:      "lo",
+				IP:             net.ParseIP("127.0.0.1"),
+				MonitoringPort: 8888,
+				QueueSize:      10,
+				RecvWorkers:    10,
+				SendWorkers:    100,
+				DebugAddr:      "localhost:6060",
+			},
+		}
+	}
+
+	testCases := []struct {
+		name      string
+		modifier  func(c *Config)
+		expectErr error
+	}{
+		{
+			name:      "valid config",
+			modifier:  func(c *Config) {},
+			expectErr: nil,
+		},
+		{
+			name: "invalid DSCP too low",
+			modifier: func(c *Config) {
+				c.DSCP = -1
+			},
+			expectErr: errUnsupportedDSCP,
+		},
+		{
+			name: "invalid DSCP too high",
+			modifier: func(c *Config) {
+				c.DSCP = 64
+			},
+			expectErr: errUnsupportedDSCP,
+		},
+		{
+			name: "invalid DomainNumber",
+			modifier: func(c *Config) {
+				c.DomainNumber = 256
+			},
+			expectErr: errUnsupportedDomainNumber,
+		},
+		{
+			name: "invalid RecvWorkers",
+			modifier: func(c *Config) {
+				c.RecvWorkers = 0
+			},
+			expectErr: errInvalidRecvWorkers,
+		},
+		{
+			name: "invalid SendWorkers",
+			modifier: func(c *Config) {
+				c.SendWorkers = -1
+			},
+			expectErr: errInvalidSendWorkers,
+		},
+		{
+			name: "invalid MonitoringPort",
+			modifier: func(c *Config) {
+				c.MonitoringPort = 65536
+			},
+			expectErr: errInvalidMonitoringPort,
+		},
+		{
+			name: "invalid QueueSize",
+			modifier: func(c *Config) {
+				c.QueueSize = -1
+			},
+			expectErr: errNegativeQueueSize,
+		},
+		{
+			name: "nil IP",
+			modifier: func(c *Config) {
+				c.IP = nil
+			},
+			expectErr: errInvalidIP,
+		},
+		{
+			name: "IP not on interface",
+			modifier: func(c *Config) {
+				// This IP is unlikely to be on 'lo'
+				c.IP = net.ParseIP("8.8.8.8")
+			},
+			expectErr: errIPNotFoundOnIface,
+		},
+		{
+			name: "non-existent interface",
+			modifier: func(c *Config) {
+				c.Interface = "no-such-interface-for-testing"
+			},
+			expectErr: errCheckingIPOnIface,
+		},
+		{
+			name: "invalid pprof address",
+			modifier: func(c *Config) {
+				c.DebugAddr = "invalid-addr"
+			},
+			expectErr: errInvalidPprofAddr,
+		},
+		{
+			name:      "valid empty pprof address",
+			modifier:  func(c *Config) { c.DebugAddr = "" },
+			expectErr: nil,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			c := baseConfig()
+			tc.modifier(c)
+
+			err := c.Validate()
+			if !errors.Is(err, tc.expectErr) {
+				t.Errorf("Validate() error mismatch:\ngot:  %v\nwant: %v", err, tc.expectErr)
+			}
+		})
+	}
+}
+
 func TestConfigifaceIPs(t *testing.T) {
 	ips, err := ifaceIPs("lo")
 	if err != nil {
@@ -285,7 +410,7 @@ utcoffset: 37s
 	}
 }
 
-func TestDynamicConfigSanityCheck(t *testing.T) {
+func TestDynamicConfigValidate(t *testing.T) {
 	// A baseline valid config to be modified by test cases
 	baseConfig := func() *DynamicConfig {
 		return &DynamicConfig{
@@ -358,9 +483,9 @@ func TestDynamicConfigSanityCheck(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			err := tc.config.SanityCheck()
+			err := tc.config.Validate()
 			if !errors.Is(err, tc.expectErr) {
-				t.Errorf("SanityCheck() error mismatch:\ngot:  %v\nwant: %v", err, tc.expectErr)
+				t.Errorf("Validate() error mismatch:\ngot:  %v\nwant: %v", err, tc.expectErr)
 			}
 		})
 	}

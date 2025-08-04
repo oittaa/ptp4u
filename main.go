@@ -39,12 +39,12 @@ func main() {
 
 	var ipaddr string
 
-	flag.IntVar(&c.DSCP, "dscp", 0, "DSCP for PTP packets, valid values are between 0-63 (used by send workers)")
+	flag.IntVar(&c.DSCP, "dscp", 0, "DSCP for PTP packets, valid values are between 0-63 (used by send workers) (default 0)")
 	flag.IntVar(&c.MonitoringPort, "monitoringport", 8888, "Port to run monitoring server on")
-	flag.IntVar(&c.QueueSize, "queue", 0, "Size of the queue to send out packets")
+	flag.IntVar(&c.QueueSize, "queue", 0, "Size of the queue to send out packets (default 0)")
 	flag.IntVar(&c.RecvWorkers, "recvworkers", 10, "Set the number of receive workers")
 	flag.IntVar(&c.SendWorkers, "workers", 100, "Set the number of send workers")
-	flag.UintVar(&c.DomainNumber, "domainnumber", 0, "Set the PTP domain by its number. Valid values are [0-255]")
+	flag.UintVar(&c.DomainNumber, "domainnumber", 0, "Set the PTP domain by its number. Valid values are [0-255] (default 0)")
 	flag.StringVar(&c.ConfigFile, "config", "", "Path to a config with dynamic settings")
 	flag.StringVar(&c.DebugAddr, "pprofaddr", "", "host:port for the pprof to bind")
 	flag.StringVar(&c.Interface, "iface", "eth0", "Set the interface")
@@ -62,9 +62,7 @@ func main() {
 		level = slog.LevelDebug
 	case "info":
 		level = slog.LevelInfo
-	case "warning":
-		fallthrough
-	case "warn":
+	case "warn", "warning":
 		level = slog.LevelWarn
 	case "error":
 		level = slog.LevelError
@@ -83,67 +81,18 @@ func main() {
 		c.DynamicConfig = *dc
 	}
 
-	if c.DSCP < 0 || c.DSCP > 63 {
-		slog.Error("Unsupported DSCP value.", "dscp", c.DSCP)
-		os.Exit(1)
-	}
-
-	if c.DomainNumber > 255 {
-		slog.Error("Unsupported DomainNumber value.", "domainnumber", c.DomainNumber)
-		os.Exit(1)
-	}
-
-	if c.RecvWorkers <= 0 {
-		slog.Error("Number of receive workers must be greater than zero.", "recvworkers", c.RecvWorkers)
-		os.Exit(1)
-	}
-
-	if c.SendWorkers <= 0 {
-		slog.Error("Number of send workers must be greater than zero.", "workers", c.SendWorkers)
-		os.Exit(1)
-	}
-
-	if c.MonitoringPort <= 0 || c.MonitoringPort > 65535 {
-		slog.Error("Invalid monitoring port.", "port", c.MonitoringPort)
-		os.Exit(1)
-	}
-
-	if c.QueueSize < 0 {
-		slog.Error("Queue size cannot be negative.", "queue", c.QueueSize)
-		os.Exit(1)
-	}
-
-	switch c.TimestampType {
-	case timestamp.SW:
-		slog.Warn("Software timestamps greatly reduce the precision")
-		fallthrough
-	case timestamp.HW:
-		slog.Debug("Using:", "timestamptype", c.TimestampType)
-	default:
-		slog.Error("Unrecognized:", "timestamptype", c.TimestampType)
-		os.Exit(1)
-	}
-
 	c.IP = net.ParseIP(ipaddr)
-	if c.IP == nil {
-		slog.Error("Invalid IP address provided.", "ip", ipaddr)
+
+	if err := c.Validate(); err != nil {
+		slog.Error("Configuration validation failed", "error", err)
 		os.Exit(1)
 	}
-	found, err := c.IfaceHasIP()
-	if err != nil {
-		slog.Error("Checking IP failed.", "iface", c.Interface, "error", err)
-		os.Exit(1)
-	}
-	if !found {
-		slog.Error("IP not found on interface.", "ip", c.IP, "iface", c.Interface)
-		os.Exit(1)
+
+	if c.TimestampType == timestamp.SW {
+		slog.Warn("Software timestamps greatly reduce the precision")
 	}
 
 	if c.DebugAddr != "" {
-		if _, _, err := net.SplitHostPort(c.DebugAddr); err != nil {
-			slog.Error("Invalid pprof address format. Expected host:port", "pprofaddr", c.DebugAddr, "error", err)
-			os.Exit(1)
-		}
 		slog.Warn("Starting profiler.", "pprofaddr", c.DebugAddr)
 		pprofMux := http.NewServeMux()
 		pprofMux.HandleFunc("/debug/pprof/", pprof.Index)

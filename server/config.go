@@ -37,6 +37,19 @@ import (
 )
 
 var (
+	// StaticConfig
+	errUnsupportedDSCP          = errors.New("unsupported DSCP value, must be between 0-63")
+	errUnsupportedDomainNumber  = errors.New("unsupported DomainNumber value, must be between 0-255")
+	errInvalidRecvWorkers       = errors.New("number of receive workers must be greater than zero")
+	errInvalidSendWorkers       = errors.New("number of send workers must be greater than zero")
+	errInvalidMonitoringPort    = errors.New("invalid monitoring port, must be between 1-65535")
+	errNegativeQueueSize        = errors.New("queue size cannot be negative")
+	errUnsupportedTimestampType = errors.New("unrecognized timestamp type")
+	errInvalidIP                = errors.New("invalid IP address provided")
+	errIPNotFoundOnIface        = errors.New("IP not found on interface")
+	errCheckingIPOnIface        = errors.New("failed checking IP on interface")
+	errInvalidPprofAddr         = errors.New("invalid pprof address format, expected host:port")
+	// DynamicConfig
 	errInsaneUTCoffset    = errors.New("UTC offset is outside of sane range")
 	errNegativeDuration   = errors.New("duration values cannot be negative")
 	errInconsistentSubInt = errors.New("maxsubduration must be greater than or equal to minsubinterval")
@@ -90,6 +103,59 @@ type Config struct {
 	clockIdentity ptp.ClockIdentity
 }
 
+// Validate performs a validation of the static configuration.
+func (c *Config) Validate() error {
+	if c.DSCP < 0 || c.DSCP > 63 {
+		return fmt.Errorf("%w: %d", errUnsupportedDSCP, c.DSCP)
+	}
+
+	if c.DomainNumber > 255 {
+		return fmt.Errorf("%w: %d", errUnsupportedDomainNumber, c.DomainNumber)
+	}
+
+	if c.RecvWorkers <= 0 {
+		return fmt.Errorf("%w: %d", errInvalidRecvWorkers, c.RecvWorkers)
+	}
+
+	if c.SendWorkers <= 0 {
+		return fmt.Errorf("%w: %d", errInvalidSendWorkers, c.SendWorkers)
+	}
+
+	if c.MonitoringPort <= 0 || c.MonitoringPort > 65535 {
+		return fmt.Errorf("%w: %d", errInvalidMonitoringPort, c.MonitoringPort)
+	}
+
+	if c.QueueSize < 0 {
+		return fmt.Errorf("%w: %d", errNegativeQueueSize, c.QueueSize)
+	}
+
+	switch c.TimestampType {
+	case timestamp.SW, timestamp.HW:
+		// valid types
+	default:
+		return fmt.Errorf("%w: %s", errUnsupportedTimestampType, c.TimestampType)
+	}
+
+	if c.IP == nil {
+		return errInvalidIP
+	}
+	found, err := c.IfaceHasIP()
+	if err != nil {
+		return fmt.Errorf("%w: %w", errCheckingIPOnIface, err)
+	}
+	if !found {
+		return fmt.Errorf("%w: %s on %s", errIPNotFoundOnIface, c.IP, c.Interface)
+	}
+
+	if c.DebugAddr != "" {
+		if _, _, err := net.SplitHostPort(c.DebugAddr); err != nil {
+			return fmt.Errorf("%w: %w", errInvalidPprofAddr, err)
+		}
+	}
+
+	return nil
+}
+
 // Set reasonable defaults for DynamicConfig
 func NewDefaultDynamicConfig() *DynamicConfig {
 	return &DynamicConfig{
@@ -106,8 +172,8 @@ func NewDefaultDynamicConfig() *DynamicConfig {
 	}
 }
 
-// SanityCheck performs a validation of the dynamic configuration.
-func (dc *DynamicConfig) SanityCheck() error {
+// Validate performs a validation of the dynamic configuration.
+func (dc *DynamicConfig) Validate() error {
 	// Checks if UTC offset value has an adequate value
 	if dc.UTCOffset < 30*time.Second || dc.UTCOffset > 50*time.Second {
 		return errInsaneUTCoffset
@@ -139,7 +205,7 @@ func ReadDynamicConfig(path string) (*DynamicConfig, error) {
 		return nil, err
 	}
 
-	if err := dc.SanityCheck(); err != nil {
+	if err := dc.Validate(); err != nil {
 		return nil, fmt.Errorf("dynamic config validation failed: %w", err)
 	}
 
